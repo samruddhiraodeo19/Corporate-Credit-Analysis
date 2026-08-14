@@ -6,6 +6,12 @@ credit metric suite, runs seven stress scenarios, applies level/trend/stress
 watchlist triggers, and produces an Excel underwriting model, an interactive
 dashboard, a Power BI dataset and a generated credit memo per flagged name.
 
+### ▶ [**View the live dashboard**](https://samruddhiraodeo19.github.io/Corporate-Credit-Analysis/)
+
+Three pages — portfolio overview with a leverage-vs-coverage scatter,
+per-company eight-quarter trends, and a stress-scenario breach matrix. No
+install, no sign-in; it runs entirely in the browser.
+
 Everything is driven from filings — no manual data entry, no hardcoded
 financials. One command rebuilds every deliverable from the SEC API in about
 three seconds.
@@ -57,7 +63,7 @@ obvious ones:
 
 | Output | What it is |
 |---|---|
-| [`output/dashboard.html`](output/dashboard.html) | Interactive 3-page dashboard — self-contained, opens in any browser |
+| **[Live dashboard](https://samruddhiraodeo19.github.io/Corporate-Credit-Analysis/)** | Interactive 3-page dashboard, deployed on GitHub Pages. Source: [`output/dashboard.html`](output/dashboard.html) — a single self-contained file that also opens straight from a clone |
 | [`output/credit_underwriting_model.xlsx`](output/credit_underwriting_model.xlsx) | Excel model: summary/watchlist, company detail, stress matrices, assumptions, extraction audit |
 | [`output/memos/`](output/memos) | A two-page credit memo per flagged name, generated from the model's own numbers |
 | [`output/powerbi/`](output/powerbi) | Star-schema model, 35 DAX measures and a build guide for Power BI Desktop |
@@ -218,6 +224,7 @@ credit-risk-system/
     build_memo.py       the generated credit memos
     run_pipeline.py     runs all ten stages
   docs/                 methodology, pipeline, model validation
+  index.html            redirects the GitHub Pages root to the dashboard
   data/raw/             cached SEC responses (gitignored)
   db/                   SQLite database (gitignored)
   output/               generated deliverables
@@ -234,5 +241,9 @@ credit-risk-system/
 - Metrics reflect the latest filed quarter and lag the market by up to a
   quarter; nothing since the last filing is visible.
 - The `.pbix` itself must be assembled in Power BI Desktop, which is
-  Windows-only. This repo produces the model and the build steps;
-  `dashboard.html` exists so the analysis is viewable without it.
+  Windows-only. This repo produces the model and the build steps; the
+  [live dashboard](https://samruddhiraodeo19.github.io/Corporate-Credit-Analysis/)
+  exists so the analysis is viewable without it.
+- The deployed dashboard is a static snapshot of the last committed run. It
+  refreshes when the pipeline is re-run and `output/dashboard.html` is pushed —
+  there is no server behind it, which is also why it costs nothing to host.
