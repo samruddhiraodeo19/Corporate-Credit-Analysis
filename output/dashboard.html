@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corporate Credit Risk — Portfolio Dashboard</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { background: #ffffff; }
+  @media (prefers-color-scheme: dark) { body { background: #121211; } }
+</style>
+</head>
+<body>
+<div class="viz-root" id="app">
+<style>
+.viz-root {
+  color-scheme: light;
+  --surface-0: #ffffff;
+  --surface-1: #fcfcfb;
+  --surface-2: #f4f3f0;
+  --border:    #e2e1dc;
+  --grid:      #ebeae6;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #78776f;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --good:     #0ca30c;
+  --warning:  #fab219;
+  --critical: #d03b3b;
+  --seq-100: #cde2fb; --seq-200: #9ec5f4; --seq-300: #6da7ec;
+  --seq-450: #2a78d6; --seq-550: #1c5cab; --seq-700: #0d366b;
+  --shadow: 0 1px 2px rgba(11,11,11,.06), 0 1px 8px rgba(11,11,11,.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-0: #121211; --surface-1: #1a1a19; --surface-2: #232322;
+    --border: #34343200; --border: #343432; --grid: #2b2b2a;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #92918a;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+    --seq-100: #0d366b; --seq-200: #104281; --seq-300: #184f95;
+    --seq-450: #256abf; --seq-550: #3987e5; --seq-700: #86b6ef;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-0: #121211; --surface-1: #1a1a19; --surface-2: #232322;
+  --border: #343432; --grid: #2b2b2a;
+  --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #92918a;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+  --seq-100: #0d366b; --seq-200: #104281; --seq-300: #184f95;
+  --seq-450: #256abf; --seq-550: #3987e5; --seq-700: #86b6ef;
+  --shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+
+.viz-root {
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  padding: 28px 22px 64px;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+.viz-root * { box-sizing: border-box; }
+h1 { font-size: 22px; font-weight: 650; letter-spacing: -.01em; margin: 0 0 4px; }
+h2 { font-size: 15px; font-weight: 620; margin: 0 0 2px; }
+.sub { color: var(--text-secondary); font-size: 12.5px; margin: 0; }
+.muted { color: var(--text-muted); font-size: 12px; }
+
+/* --- tabs ------------------------------------------------------------- */
+.tabs { display: flex; gap: 4px; margin: 20px 0 18px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.tab {
+  appearance: none; background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--text-secondary); font: inherit; font-size: 13.5px; font-weight: 550;
+  padding: 9px 13px; cursor: pointer; margin-bottom: -1px;
+}
+.tab:hover { color: var(--text-primary); }
+.tab[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--series-1); }
+.page[hidden] { display: none; }
+
+/* --- cards & tiles ---------------------------------------------------- */
+.card {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 16px;
+}
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; box-shadow: var(--shadow); }
+.tile .label { font-size: 11.5px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; font-weight: 560; }
+.tile .figure { font-size: 27px; font-weight: 640; letter-spacing: -.02em; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.tile .foot { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+/* --- table ------------------------------------------------------------ */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: right; padding: 7px 9px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { color: var(--text-secondary); font-weight: 560; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; }
+td:first-child, th:first-child, td.l, th.l { text-align: left; }
+tbody tr:hover td { background: var(--surface-2); }
+.num { font-variant-numeric: tabular-nums; }
+.bad { color: var(--critical); font-weight: 600; }
+
+/* Severity always pairs a colour with a shape glyph and a text label --
+   the status ramp is not separable by colour alone under CVD. */
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 560; white-space: nowrap; }
+.chip .glyph { font-size: 10px; line-height: 1; }
+.sev-High { color: var(--critical); }
+.sev-Medium { color: var(--warning); }
+.sev-Low { color: var(--warning); }
+.sev-Clear { color: var(--good); }
+:root[data-theme="light"] .sev-Medium, :root[data-theme="light"] .sev-Low { color: #9a6a00; }
+@media (prefers-color-scheme: light) { .sev-Medium, .sev-Low { color: #9a6a00; } }
+
+/* --- charts ----------------------------------------------------------- */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+svg { display: block; max-width: 100%; overflow: visible; }
+.axis-line { stroke: var(--border); stroke-width: 1; }
+.grid-line { stroke: var(--grid); stroke-width: 1; }
+.ref-line { stroke: var(--critical); stroke-width: 1; stroke-dasharray: 4 3; opacity: .75; }
+.tick { fill: var(--text-muted); font-size: 10.5px; }
+.mark-label { fill: var(--text-secondary); font-size: 10.5px; font-weight: 560; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 12px; color: var(--text-secondary); }
+.legend .item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* --- controls --------------------------------------------------------- */
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+select, .toggle {
+  appearance: none; background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 7px; padding: 7px 11px;
+  font: inherit; font-size: 13px; cursor: pointer;
+}
+.toggle[aria-pressed="true"] { background: var(--surface-2); border-color: var(--text-muted); }
+
+/* --- tooltip ---------------------------------------------------------- */
+#tip {
+  position: fixed; pointer-events: none; opacity: 0; transition: opacity .09s;
+  background: var(--surface-0); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+  font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,.16); z-index: 50; max-width: 280px;
+}
+#tip .t-title { font-weight: 620; margin-bottom: 3px; }
+#tip .t-row { color: var(--text-secondary); display: flex; justify-content: space-between; gap: 14px; }
+#tip .t-row b { color: var(--text-primary); font-weight: 560; font-variant-numeric: tabular-nums; }
+
+.trigger { border-left: 2px solid var(--border); padding: 3px 0 3px 11px; margin-bottom: 9px; font-size: 12.5px; }
+.trigger.Level { border-left-color: var(--critical); }
+.trigger.Trend { border-left-color: var(--warning); }
+.trigger.Stress { border-left-color: var(--series-1); }
+.trigger .cat { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; }
+.note { font-size: 12px; color: var(--text-muted); margin-top: 9px; }
+</style>
+
+<h1>Corporate Credit Risk &mdash; Portfolio Dashboard</h1>
+<p class="sub">US retail issuers &middot; SEC EDGAR XBRL filings &middot; latest filed quarter as of <span id="asof"></span>.
+Covenant thresholds are stated assumptions, not negotiated terms.</p>
+
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" aria-selected="true" data-page="overview">Portfolio Overview</button>
+  <button class="tab" role="tab" aria-selected="false" data-page="company">Company Deep Dive</button>
+  <button class="tab" role="tab" aria-selected="false" data-page="stress">Stress Test Matrix</button>
+</div>
+
+<section class="page" id="page-overview">
+  <div class="tiles" id="tiles"></div>
+  <div class="card">
+    <h2>Leverage vs. coverage</h2>
+    <p class="sub">Each name plotted against the two tests that matter most. The lower-right
+      quadrant &mdash; leverage above the assumed covenant, coverage below the floor &mdash; is the problem set.</p>
+    <div id="scatter"></div>
+    <div class="legend" id="scatter-legend"></div>
+    <p class="note">Marks are labelled and shaped as well as coloured: the status palette is not
+      separable by colour alone for readers with colour-vision deficiency.</p>
+  </div>
+  <div class="card">
+    <h2>Portfolio detail</h2>
+    <p class="sub">The table view of every figure plotted above.</p>
+    <div class="scroll"><table id="portfolio"></table></div>
+  </div>
+</section>
+
+<section class="page" id="page-company" hidden>
+  <div class="controls">
+    <label for="pick" class="muted">Company</label>
+    <select id="pick"></select>
+    <button class="toggle" id="trend-table" aria-pressed="false">Show trend as table</button>
+  </div>
+  <div class="tiles" id="company-tiles"></div>
+  <div class="card">
+    <h2>Eight-quarter trend</h2>
+    <p class="sub">Trailing-twelve-month ratios by fiscal quarter. Dashed rules mark the assumed policy thresholds.</p>
+    <div class="panels" id="panels"></div>
+    <div class="scroll" id="trend-table-view" hidden></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>Stress scenarios</h2>
+      <p class="sub">Debt/EBITDA under each shock.</p>
+      <div id="company-stress"></div>
+    </div>
+    <div class="card">
+      <h2>Watchlist triggers</h2>
+      <div id="company-triggers"></div>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="page-stress" hidden>
+  <div class="card">
+    <h2>Stressed Debt / EBITDA</h2>
+    <p class="sub">Company by scenario. Shading runs light to dark with leverage; a ring and bold
+      figure mark a breach of the assumed covenant.</p>
+    <div class="scroll" id="heatmap"></div>
+    <div class="legend" id="heat-legend"></div>
+  </div>
+  <div class="card">
+    <h2>Stressed EBITDA / interest coverage</h2>
+    <p class="sub">The rate and inventory shocks leave EBITDA untouched, so they cannot move a
+      leverage multiple &mdash; their effect is visible only here and in liquidity.</p>
+    <div class="scroll" id="heatmap2"></div>
+  </div>
+</section>
+
+<div id="tip" role="tooltip"></div>
+
+<script>
+const DATA = {"companies":[{"ticker":"W","name":"Wayfair Inc.","grade":"B","band":"High","severity":"High","period":"2026-06-30","revenue":12904000000.0,"ebitda":492000000.0,"margin":0.0166615003099814,"debt":2797000000.0,"netDebt":1654000000.0,"leverage":5.684959349593496,"coverage":3.393103448275862,"fcfToDebt":0.200929567393636,"currentRatio":0.7429453262786596,"quickRatio":0.7059082892416225,"altman":-6.702535772215113,"headroom":-1.1849593495934956,"coverageNote":null},{"ticker":"BBWI","name":"Bath & Body Works, Inc.","grade":"BB","band":"Medium","severity":"Medium","period":"2026-05-02","revenue":7245000000.0,"ebitda":1399000000.0,"margin":0.1584541062801932,"debt":3613000000.0,"netDebt":2793000000.0,"leverage":2.5825589706933525,"coverage":5.124542124542124,"fcfToDebt":0.2515914752283421,"currentRatio":1.3790849673202614,"quickRatio":0.8111837327523602,"altman":1.2008483251942283,"headroom":1.9174410293066475,"coverageNote":null},{"ticker":"TGT","name":"TARGET CORP","grade":"BBB","band":"Medium","severity":"Medium","period":"2026-05-02","revenue":106377000000.0,"ebitda":7940000000.0,"margin":0.044934525320323,"debt":15415000000.0,"netDebt":7270000000.0,"leverage":1.9414357682619647,"coverage":17.762863534675617,"fcfToDebt":0.1966266623418747,"currentRatio":0.9319541890218735,"quickRatio":0.2965332232769294,"altman":1.3550301602533943,"headroom":2.5585642317380355,"coverageNote":null},{"ticker":"BURL","name":"Burlington Stores, Inc.","grade":"BBB","band":"Medium","severity":"Clear","period":"2026-05-02","revenue":11901842000.0,"ebitda":1310105000.0,"margin":0.073888562795574,"debt":1917363000.0,"netDebt":1170008000.0,"leverage":1.4635185729388105,"coverage":18.2654128210133,"fcfToDebt":0.1997222226568469,"currentRatio":1.1638641212238343,"quickRatio":0.4929048227878211,"altman":1.821677174778578,"headroom":3.0364814270611897,"coverageNote":null},{"ticker":"M","name":"Macy's, Inc.","grade":"A","band":"Low","severity":"Clear","period":"2026-05-02","revenue":21846000000.0,"ebitda":1933000000.0,"margin":0.0479721688180902,"debt":2432000000.0,"netDebt":1138000000.0,"leverage":1.2581479565442315,"coverage":20.347368421052632,"fcfToDebt":0.5859375,"currentRatio":1.4753958065896449,"quickRatio":0.4413778348309798,"altman":3.1563456711475943,"headroom":3.2418520434557685,"coverageNote":null},{"ticker":"DKS","name":"DICK'S SPORTING GOODS, INC.","grade":"AA","band":"Low","severity":"Medium","period":"2026-05-02","revenue":19204947000.0,"ebitda":1725022000.0,"margin":0.0614655171920026,"debt":1905810000.0,"netDebt":907582000.0,"leverage":1.1048033010593488,"coverage":24.761673724251775,"fcfToDebt":0.2112587298838814,"currentRatio":1.5008651601196483,"quickRatio":0.3821156891038543,"altman":3.104785183676251,"headroom":3.3951966989406515,"coverageNote":null},{"ticker":"KSS","name":"KOHLS Corp","grade":"BBB","band":"Medium","severity":"Clear","period":"2026-05-02","revenue":15461000000.0,"ebitda":1309000000.0,"margin":0.0394541103421512,"debt":1387000000.0,"netDebt":958000000.0,"leverage":1.0595874713521771,"coverage":4.76,"fcfToDebt":0.7584715212689257,"currentRatio":1.4815415821501017,"quickRatio":0.306288032454361,"altman":1.660980931353846,"headroom":3.4404125286478227,"coverageNote":null},{"ticker":"GAP","name":"GAP INC","grade":"AA","band":"Low","severity":"Clear","period":"2026-05-02","revenue":15400000000.0,"ebitda":1803000000.0,"margin":0.0844155844155844,"debt":1492000000.0,"netDebt":-1069000000.0,"leverage":0.8275097060454798,"coverage":19.597826086956523,"fcfToDebt":0.7533512064343163,"currentRatio":1.805928990003447,"quickRatio":1.0837642192347463,"altman":3.4034180214266434,"headroom":3.67249029395452,"coverageNote":null},{"ticker":"BBY","name":"BEST BUY CO INC","grade":"A","band":"Low","severity":"Clear","period":"2026-05-02","revenue":41860000000.0,"ebitda":2354000000.0,"margin":0.0367892976588628,"debt":1169000000.0,"netDebt":-580000000.0,"leverage":0.4966015293118097,"coverage":51.17391304347826,"fcfToDebt":1.3729683490162532,"currentRatio":1.12094395280236,"quickRatio":0.4029755033987431,"altman":1.970740267850576,"headroom":4.00339847068819,"coverageNote":null},{"ticker":"TJX","name":"TJX COMPANIES INC /DE/","grade":"A","band":"Low","severity":"Medium","period":"2026-05-02","revenue":61584000000.0,"ebitda":8835000000.0,"margin":0.122564302416212,"debt":2870000000.0,"netDebt":-2710000000.0,"leverage":0.3248443689869836,"coverage":null,"fcfToDebt":1.9083623693379792,"currentRatio":1.1388564760793465,"quickRatio":0.5418125243096071,"altman":3.0225218729562737,"headroom":4.175155631013016,"coverageNote":"net interest income - not meaningful"},{"ticker":"ROST","name":"ROSS STORES, INC.","grade":"AA","band":"Low","severity":"Clear","period":"2026-05-02","revenue":23776064000.0,"ebitda":3430965000.0,"margin":0.1221780442717516,"debt":1018187000.0,"netDebt":-3112793000.0,"leverage":0.296764029944928,"coverage":null,"fcfToDebt":2.5853070212053386,"currentRatio":1.540924198170648,"quickRatio":0.9352180277953266,"altman":4.12331920499783,"headroom":4.203235970055072,"coverageNote":"net interest income - not meaningful"},{"ticker":"ANF","name":"ABERCROMBIE & FITCH CO /DE/","grade":"AA","band":"Low","severity":"Clear","period":"2026-05-02","revenue":5282802000.0,"ebitda":845156000.0,"margin":0.1299323730096263,"debt":0.0,"netDebt":-594080000.0,"leverage":0.0,"coverage":null,"fcfToDebt":null,"currentRatio":1.4482989771962036,"quickRatio":0.9031335007644932,"altman":6.392453141437064,"headroom":4.5,"coverageNote":"net interest income - not meaningful"}],"trends":{"ANF":{"altman_z_double_prime":[{"period":"2024-08-03","value":6.246355997003892},{"period":"2024-11-02","value":6.063628841874998},{"period":"2025-02-01","value":6.481273349335848},{"period":"2025-05-03","value":6.454259361506064},{"period":"2025-08-02","value":6.468136027193694},{"period":"2025-11-01","value":6.184487955501919},{"period":"2026-01-31","value":6.441450981654678},{"period":"2026-05-02","value":6.392453141437064}],"current_ratio":[{"period":"2024-08-03","value":1.442156941052968},{"period":"2024-11-02","value":1.40071263669656},{"period":"2025-02-01","value":1.484928266178266},{"period":"2025-05-03","value":1.3757245687627018},{"period":"2025-08-02","value":1.434543529590835},{"period":"2025-11-01","value":1.383942658986575},{"period":"2026-01-31","value":1.4922820976491862},{"period":"2026-05-02","value":1.4482989771962036}],"debt_to_ebitda":[{"period":"2024-08-03","value":0.0},{"period":"2024-11-02","value":0.0},{"period":"2025-02-01","value":0.0},{"period":"2025-05-03","value":0.0},{"period":"2025-08-02","value":0.0},{"period":"2025-11-01","value":0.0},{"period":"2026-01-31","value":0.0},{"period":"2026-05-02","value":0.0}],"ebitda_ttm":[{"period":"2024-08-03","value":812032000.0},{"period":"2024-11-02","value":859724000.0},{"period":"2025-02-01","value":894593000.0},{"period":"2025-05-03","value":867164000.0},{"period":"2025-08-02","value":896266000.0},{"period":"2025-11-01","value":871005000.0},{"period":"2026-01-31","value":854164000.0},{"period":"2026-05-02","value":845156000.0}],"fcf_ttm":[{"period":"2024-08-03","value":547547000.0},{"period":"2024-11-02","value":544800000.0},{"period":"2025-02-01","value":527473000.0},{"period":"2025-05-03","value":416585000.0},{"period":"2025-08-02","value":344953000.0},{"period":"2025-11-01","value":384545000.0},{"period":"2026-01-31","value":378368000.0},{"period":"2026-05-02","value":416047000.0}],"interest_coverage":[{"period":"2024-08-03","value":69.76219931271477},{"period":"2024-11-02","value":78.37760962713101},{"period":"2025-02-01","value":81.5564773452457},{"period":"2025-05-03","value":167.1158219310079}],"operating_margin":[{"period":"2024-08-03","value":0.142857847334994},{"period":"2024-11-02","value":0.1469003817441307},{"period":"2025-02-01","value":0.149703339559353},{"period":"2025-05-03","value":0.141787100451169},{"period":"2025-08-02","value":0.1457986012658649},{"period":"2025-11-01","value":0.1388186645056063},{"period":"2026-01-31","value":0.1327581151975621},{"period":"2026-05-02","value":0.1299323730096263}],"quick_ratio":[{"period":"2024-08-03","value":0.9289102139863226},{"period":"2024-11-02","value":0.8148041306534449},{"period":"2025-02-01","value":0.9746943947525344},{"period":"2025-05-03","value":0.8330523491545446},{"period":"2025-08-02","value":0.8633079040230588},{"period":"2025-11-01","value":0.755869913078769},{"period":"2026-01-31","value":0.9486853526220614},{"period":"2026-05-02","value":0.9031335007644932}],"working_capital":[{"period":"2024-08-03","value":464997000.0},{"period":"2024-11-02","value":473678000.0},{"period":"2025-02-01","value":546487000.0},{"period":"2025-05-03","value":375300000.0},{"period":"2025-08-02","value":451074000.0},{"period":"2025-11-01","value":446528000.0},{"period":"2026-01-31","value":544464000.0},{"period":"2026-05-02","value":438041000.0}]},"BBWI":{"altman_z_double_prime":[{"period":"2024-08-03","value":0.4376741150267008},{"period":"2024-11-02","value":0.3791997350523459},{"period":"2025-02-01","value":1.255271940083401},{"period":"2025-05-03","value":1.149055692921641},{"period":"2025-08-02","value":0.8934053065500217},{"period":"2025-11-01","value":0.6542421907439645},{"period":"2026-01-31","value":0.9121973989567784},{"period":"2026-05-02","value":1.2008483251942283}],"current_ratio":[{"period":"2024-08-03","value":1.1128924515698062},{"period":"2024-11-02","value":1.092063492063492},{"period":"2025-02-01","value":1.4809098294069862},{"period":"2025-05-03","value":1.4064914992272024},{"period":"2025-08-02","value":1.3092862624712205},{"period":"2025-11-01","value":1.2112041210560207},{"period":"2026-01-31","value":1.2690131992457574},{"period":"2026-05-02","value":1.3790849673202614}],"debt_to_ebitda":[{"period":"2024-08-03","value":2.673040152963671},{"period":"2024-11-02","value":2.681789137380192},{"period":"2025-02-01","value":2.509043927648579},{"period":"2025-05-03","value":2.486244401791427},{"period":"2025-08-02","value":2.541176470588235},{"period":"2025-11-01","value":2.6516700749829583},{"period":"2026-01-31","value":2.820289855072464},{"period":"2026-05-02","value":2.5825589706933525}],"ebitda_ttm":[{"period":"2024-08-03","value":1569000000.0},{"period":"2024-11-02","value":1565000000.0},{"period":"2025-02-01","value":1548000000.0},{"period":"2025-05-03","value":1563000000.0},{"period":"2025-08-02","value":1530000000.0},{"period":"2025-11-01","value":1467000000.0},{"period":"2026-01-31","value":1380000000.0},{"period":"2026-05-02","value":1399000000.0}],"fcf_ttm":[{"period":"2024-08-03","value":686000000.0},{"period":"2024-11-02","value":643000000.0},{"period":"2025-02-01","value":660000000.0},{"period":"2025-05-03","value":781000000.0},{"period":"2025-08-02","value":783000000.0},{"period":"2025-11-01","value":946000000.0},{"period":"2026-01-31","value":865000000.0},{"period":"2026-05-02","value":909000000.0}],"interest_coverage":[{"period":"2024-08-03","value":4.768996960486322},{"period":"2024-11-02","value":4.8602484472049685},{"period":"2025-02-01","value":4.961538461538462},{"period":"2025-05-03","value":5.192691029900332},{"period":"2025-08-02","value":5.239726027397261},{"period":"2025-11-01","value":5.18374558303887},{"period":"2026-01-31","value":5.0181818181818185},{"period":"2026-05-02","value":5.124542124542124}],"operating_margin":[{"period":"2024-08-03","value":0.1742957746478873},{"period":"2024-11-02","value":0.1727664155005382},{"period":"2025-02-01","value":0.1732585192281374},{"period":"2025-05-03","value":0.1753096501973594},{"period":"2025-08-02","value":0.1712347354138398},{"period":"2025-11-01","value":0.1638564046777264},{"period":"2026-01-31","value":0.1544369770950487},{"period":"2026-05-02","value":0.1584541062801932}],"quick_ratio":[{"period":"2024-08-03","value":0.5364061456245826},{"period":"2024-11-02","value":0.3441269841269841},{"period":"2025-02-01","value":0.8846466287571081},{"period":"2025-05-03","value":0.7349304482225657},{"period":"2025-08-02","value":0.5594781273983116},{"period":"2025-11-01","value":0.4056664520283322},{"period":"2026-01-31","value":0.8296668761785041},{"period":"2026-05-02","value":0.8111837327523602}],"working_capital":[{"period":"2024-08-03","value":169000000.0},{"period":"2024-11-02","value":145000000.0},{"period":"2025-02-01","value":592000000.0},{"period":"2025-05-03","value":526000000.0},{"period":"2025-08-02","value":403000000.0},{"period":"2025-11-01","value":328000000.0},{"period":"2026-01-31","value":428000000.0},{"period":"2026-05-02","value":522000000.0}]},"BBY":{"altman_z_double_prime":[{"period":"2024-08-03","value":1.5787249362372553},{"period":"2024-11-02","value":1.3960674557256116},{"period":"2025-02-01","value":1.460513035086597},{"period":"2025-05-03","value":1.451890046580594},{"period":"2025-08-02","value":1.3325739451425709},{"period":"2025-11-01","value":1.179013642409501},{"period":"2026-01-31","value":1.8510497537312416},{"period":"2026-05-02","value":1.970740267850576}],"current_ratio":[{"period":"2024-08-03","value":1.0131345402910898},{"period":"2024-11-02","value":1.00070365902694},{"period":"2025-02-01","value":1.0259481037924152},{"period":"2025-05-03","value":1.0233405288720994},{"period":"2025-08-02","value":1.03788144510698},{"period":"2025-11-01","value":1.0454860081083754},{"period":"2026-01-31","value":1.1074358640447974},{"period":"2026-05-02","value":1.12094395280236}],"debt_to_ebitda":[{"period":"2024-08-03","value":0.4685622747296756},{"period":"2024-11-02","value":0.4666935809446911},{"period":"2025-02-01","value":0.5422932330827067},{"period":"2025-05-03","value":0.573754316724223},{"period":"2025-08-02","value":0.621822033898305},{"period":"2025-11-01","value":0.6737998843262001},{"period":"2026-01-31","value":0.5297297297297298},{"period":"2026-05-02","value":0.4966015293118097}],"ebitda_ttm":[{"period":"2024-08-03","value":2497000000.0},{"period":"2024-11-02","value":2477000000.0},{"period":"2025-02-01","value":2128000000.0},{"period":"2025-05-03","value":2027000000.0},{"period":"2025-08-02","value":1888000000.0},{"period":"2025-11-01","value":1729000000.0},{"period":"2026-01-31","value":2220000000.0},{"period":"2026-05-02","value":2354000000.0}],"fcf_ttm":[{"period":"2024-08-03","value":1371000000.0},{"period":"2024-11-02","value":1030000000.0},{"period":"2025-02-01","value":1392000000.0},{"period":"2025-05-03","value":1256000000.0},{"period":"2025-08-02","value":1352000000.0},{"period":"2025-11-01","value":1514000000.0},{"period":"2026-01-31","value":1258000000.0},{"period":"2026-05-02","value":1605000000.0}],"interest_coverage":[{"period":"2024-08-03","value":47.113207547169814},{"period":"2024-11-02","value":47.63461538461539},{"period":"2025-02-01","value":41.72549019607843},{"period":"2025-05-03","value":39.74509803921568},{"period":"2025-08-02","value":37.76},{"period":"2025-11-01","value":35.285714285714285},{"period":"2026-01-31","value":47.234042553191486},{"period":"2026-05-02","value":51.17391304347826}],"operating_margin":[{"period":"2024-08-03","value":0.0378494016973458},{"period":"2024-11-02","value":0.0380334391133424},{"period":"2025-02-01","value":0.0303891350414178},{"period":"2025-05-03","value":0.0282040146689828},{"period":"2025-08-02","value":0.0249290831289965},{"period":"2025-11-01","value":0.0211595935445307},{"period":"2026-01-31","value":0.0333165431388069},{"period":"2026-05-02","value":0.0367892976588628}],"quick_ratio":[{"period":"2024-08-03","value":0.3379481718139865},{"period":"2024-11-02","value":0.2160233212706071},{"period":"2025-02-01","value":0.3915918163672655},{"period":"2025-05-03","value":0.3225849973016729},{"period":"2025-08-02","value":0.3578861218285981},{"period":"2025-11-01","value":0.2551171759121922},{"period":"2026-01-31","value":0.426357598645657},{"period":"2026-05-02","value":0.4029755033987431}],"working_capital":[{"period":"2024-08-03","value":111000000.0},{"period":"2024-11-02","value":7000000.0},{"period":"2025-02-01","value":208000000.0},{"period":"2025-05-03","value":173000000.0},{"period":"2025-08-02","value":324000000.0},{"period":"2025-11-01","value":460000000.0},{"period":"2026-01-31","value":825000000.0},{"period":"2026-05-02","value":943000000.0}]},"BURL":{"altman_z_double_prime":[{"period":"2024-08-03","value":1.2757946439295496},{"period":"2024-11-02","value":1.507471519433209},{"period":"2025-02-01","value":1.58426504804517},{"period":"2025-05-03","value":1.4940652921068274},{"period":"2025-08-02","value":1.6949558778806653},{"period":"2025-11-01","value":1.6880181385030233},{"period":"2026-01-31","value":1.861712753406341},{"period":"2026-05-02","value":1.821677174778578}],"current_ratio":[{"period":"2024-08-03","value":1.0363843747633288},{"period":"2024-11-02","value":1.1690143966198598},{"period":"2025-02-01","value":1.1567833995082972},{"period":"2025-05-03","value":1.0589327390421603},{"period":"2025-08-02","value":1.22936926937416},{"period":"2025-11-01","value":1.2082565509378194},{"period":"2026-01-31","value":1.2322240999177043},{"period":"2026-05-02","value":1.1638641212238343}],"debt_to_ebitda":[{"period":"2024-08-03","value":1.4101221377269533},{"period":"2024-11-02","value":1.6239713557585598},{"period":"2025-02-01","value":1.5668026057068754},{"period":"2025-05-03","value":1.4694806529178746},{"period":"2025-08-02","value":1.756846282142291},{"period":"2025-11-01","value":1.7117478813648408},{"period":"2026-01-31","value":1.6105107659943076},{"period":"2026-05-02","value":1.4635185729388105}],"ebitda_ttm":[{"period":"2024-08-03","value":994533000.0},{"period":"2024-11-02","value":1055151000.0},{"period":"2025-02-01","value":1091911000.0},{"period":"2025-05-03","value":1124123000.0},{"period":"2025-08-02","value":1160776000.0},{"period":"2025-11-01","value":1189091000.0},{"period":"2026-01-31","value":1292960000.0},{"period":"2026-05-02","value":1310105000.0}],"fcf_ttm":[{"period":"2024-08-03","value":380385000.0},{"period":"2024-11-02","value":203484000.0},{"period":"2025-02-01","value":-17008000.0},{"period":"2025-05-03","value":-340151000.0},{"period":"2025-08-02","value":-305085000.0},{"period":"2025-11-01","value":-358486000.0},{"period":"2026-01-31","value":171589000.0},{"period":"2026-05-02","value":382940000.0}],"interest_coverage":[{"period":"2024-08-03","value":13.672436073687106},{"period":"2024-11-02","value":14.897160767482246},{"period":"2025-02-01","value":15.705977963810016},{"period":"2025-05-03","value":16.366830219996213},{"period":"2025-08-02","value":16.69508687147624},{"period":"2025-11-01","value":16.768307644578567},{"period":"2026-01-31","value":18.200194254022325},{"period":"2026-05-02","value":18.2654128210133}],"operating_margin":[{"period":"2024-08-03","value":0.0647976452050982},{"period":"2024-11-02","value":0.0680068100257736},{"period":"2025-02-01","value":0.0701096372022945},{"period":"2025-05-03","value":0.071260746317208},{"period":"2025-08-02","value":0.0722982020818898},{"period":"2025-11-01","value":0.0726113460025},{"period":"2026-01-31","value":0.0757678594604994},{"period":"2026-05-02","value":0.073888562795574}],"quick_ratio":[{"period":"2024-08-03","value":0.4751601332014477},{"period":"2024-11-02","value":0.5430180108740473},{"period":"2025-02-01","value":0.606390024074691},{"period":"2025-05-03","value":0.3867697988748191},{"period":"2025-08-02","value":0.553651409833059},{"period":"2025-11-01","value":0.4555159867755751},{"period":"2026-01-31","value":0.648951565682366},{"period":"2026-05-02","value":0.4929048227878211}],"working_capital":[{"period":"2024-08-03","value":79269000.0},{"period":"2024-11-02","value":388977000.0},{"period":"2025-02-01","value":356292000.0},{"period":"2025-05-03","value":115322000.0},{"period":"2025-08-02","value":480252000.0},{"period":"2025-11-01","value":458830000.0},{"period":"2026-01-31","value":522321000.0},{"period":"2026-05-02","value":352709000.0}]},"DKS":{"altman_z_double_prime":[{"period":"2024-08-03","value":4.891304546027374},{"period":"2024-11-02","value":4.75706952123754},{"period":"2025-02-01","value":4.8683740798387065},{"period":"2025-05-03","value":4.661522313289225},{"period":"2025-08-02","value":4.777429642847818},{"period":"2025-11-01","value":3.2680255224010812},{"period":"2026-01-31","value":3.118686057825658},{"period":"2026-05-02","value":3.104785183676251}],"current_ratio":[{"period":"2024-08-03","value":1.7735447992917508},{"period":"2024-11-02","value":1.7204537233057322},{"period":"2025-02-01","value":1.7589603715769355},{"period":"2025-05-03","value":1.616371703167215},{"period":"2025-08-02","value":1.696263857531271},{"period":"2025-11-01","value":1.571848140001749},{"period":"2026-01-31","value":1.5300317127512997},{"period":"2026-05-02","value":1.5008651601196483}],"debt_to_ebitda":[{"period":"2024-08-03","value":0.7976515594625746},{"period":"2024-11-02","value":0.7927636130329542},{"period":"2025-02-01","value":0.8002816991581037},{"period":"2025-05-03","value":0.7747552243168201},{"period":"2025-08-02","value":0.7789448225098096},{"period":"2025-11-01","value":1.0948251188805402},{"period":"2026-01-31","value":1.2238532619602684},{"period":"2026-05-02","value":1.1048033010593488}],"ebitda_ttm":[{"period":"2024-08-03","value":1860128000.0},{"period":"2024-11-02","value":1871901000.0},{"period":"2025-02-01","value":1874340000.0},{"period":"2025-05-03","value":1916040000.0},{"period":"2025-08-02","value":1906049000.0},{"period":"2025-11-01","value":1739982000.0},{"period":"2026-01-31","value":1584538000.0},{"period":"2026-05-02","value":1725022000.0}],"fcf_ttm":[{"period":"2024-08-03","value":749019000.0},{"period":"2024-11-02","value":699460000.0},{"period":"2025-02-01","value":509270000.0},{"period":"2025-05-03","value":348397000.0},{"period":"2025-08-02","value":464792000.0},{"period":"2025-11-01","value":88506000.0},{"period":"2026-01-31","value":400167000.0},{"period":"2026-05-02","value":402619000.0}],"interest_coverage":[{"period":"2024-08-03","value":33.245067200457534},{"period":"2024-11-02","value":34.33609699726691},{"period":"2025-02-01","value":35.374249801834445},{"period":"2025-05-03","value":37.35771802920704},{"period":"2025-08-02","value":35.371877667668784},{"period":"2025-11-01","value":29.352913391140053},{"period":"2026-01-31","value":24.657464753664684},{"period":"2026-05-02","value":24.761673724251775}],"operating_margin":[{"period":"2024-08-03","value":0.1078159550576208},{"period":"2024-11-02","value":0.1086730570554107},{"period":"2025-02-01","value":0.1096442509801494},{"period":"2025-05-03","value":0.1109811192500232},{"period":"2025-08-02","value":0.1082866454213341},{"period":"2025-11-01","value":0.0872414744218376},{"period":"2026-01-31","value":0.06365962014787},{"period":"2026-05-02","value":0.0614655171920026}],"quick_ratio":[{"period":"2024-08-03","value":0.6855552504856204},{"period":"2024-11-02","value":0.562522609092367},{"period":"2025-02-01","value":0.6713751216696288},{"period":"2025-05-03","value":0.4695617781539054},{"period":"2025-08-02","value":0.5538256704022834},{"period":"2025-11-01","value":0.3657463801443388},{"period":"2026-01-31","value":0.4731216881537821},{"period":"2026-05-02","value":0.3821156891038543}],"working_capital":[{"period":"2024-08-03","value":2259529000.0},{"period":"2024-11-02","value":2318227000.0},{"period":"2025-02-01","value":2337645000.0},{"period":"2025-05-03","value":1918407000.0},{"period":"2025-08-02","value":2074530000.0},{"period":"2025-11-01","value":2674484000.0},{"period":"2026-01-31","value":2461233000.0},{"period":"2026-05-02","value":2426286000.0}]},"GAP":{"altman_z_double_prime":[{"period":"2024-08-03","value":2.575859384109769},{"period":"2024-11-02","value":2.776060576949485},{"period":"2025-02-01","value":2.934528688275594},{"period":"2025-05-03","value":3.146413120637672},{"period":"2025-08-02","value":3.1286624707173707},{"period":"2025-11-01","value":3.2352193492130144},{"period":"2026-01-31","value":3.2625760058932247},{"period":"2026-05-02","value":3.4034180214266434}],"current_ratio":[{"period":"2024-08-03","value":1.4916253101736974},{"period":"2024-11-02","value":1.542857142857143},{"period":"2025-02-01","value":1.597972972972973},{"period":"2025-05-03","value":1.7112824106517168},{"period":"2025-08-02","value":1.6818892711917424},{"period":"2025-11-01","value":1.7200365965233302},{"period":"2026-01-31","value":1.7506060606060605},{"period":"2026-05-02","value":1.805928990003447}],"debt_to_ebitda":[{"period":"2024-08-03","value":1.0170765027322404},{"period":"2024-11-02","value":0.9508301404853128},{"period":"2025-02-01","value":0.924317617866005},{"period":"2025-05-03","value":0.8954326923076923},{"period":"2025-08-02","value":0.8971119133574007},{"period":"2025-11-01","value":0.9080389768574908},{"period":"2026-01-31","value":0.926132836747362},{"period":"2026-05-02","value":0.8275097060454798}],"ebitda_ttm":[{"period":"2024-08-03","value":1464000000.0},{"period":"2024-11-02","value":1566000000.0},{"period":"2025-02-01","value":1612000000.0},{"period":"2025-05-03","value":1664000000.0},{"period":"2025-08-02","value":1662000000.0},{"period":"2025-11-01","value":1642000000.0},{"period":"2026-01-31","value":1611000000.0},{"period":"2026-05-02","value":1803000000.0}],"fcf_ttm":[{"period":"2024-08-03","value":1180000000.0},{"period":"2024-11-02","value":1108000000.0},{"period":"2025-02-01","value":1039000000.0},{"period":"2025-05-03","value":879000000.0},{"period":"2025-08-02","value":769000000.0},{"period":"2025-11-01","value":779000000.0},{"period":"2026-01-31","value":823000000.0},{"period":"2026-05-02","value":1124000000.0}],"interest_coverage":[{"period":"2024-08-03","value":15.09278350515464},{"period":"2024-11-02","value":17.02173913043478},{"period":"2025-02-01","value":18.528735632183903},{"period":"2025-05-03","value":18.696629213483146},{"period":"2025-08-02","value":18.886363636363637},{"period":"2025-11-01","value":18.65909090909091},{"period":"2026-01-31","value":17.322580645161292},{"period":"2026-05-02","value":19.597826086956523}],"operating_margin":[{"period":"2024-08-03","value":0.0634020958281157},{"period":"2024-11-02","value":0.0700361010830324},{"period":"2025-02-01","value":0.0737107251756595},{"period":"2025-05-03","value":0.0769738143921904},{"period":"2025-08-02","value":0.0768825003296848},{"period":"2025-11-01","value":0.0749394593887034},{"period":"2026-01-31","value":0.0725628009891969},{"period":"2026-05-02","value":0.0844155844155844}],"quick_ratio":[{"period":"2024-08-03","value":0.8380893300248139},{"period":"2024-11-02","value":0.8418045112781954},{"period":"2025-02-01","value":0.9631449631449632},{"period":"2025-05-03","value":0.9765241765942536},{"period":"2025-08-02","value":0.9643415702220832},{"period":"2025-11-01","value":0.9701128392802684},{"period":"2026-01-31","value":1.0818181818181818},{"period":"2026-05-02","value":1.0837642192347463}],"working_capital":[{"period":"2024-08-03","value":1585000000.0},{"period":"2024-11-02","value":1805000000.0},{"period":"2025-02-01","value":1947000000.0},{"period":"2025-05-03","value":2030000000.0},{"period":"2025-08-02","value":2180000000.0},{"period":"2025-11-01","value":2361000000.0},{"period":"2026-01-31","value":2477000000.0},{"period":"2026-05-02","value":2338000000.0}]},"KSS":{"altman_z_double_prime":[{"period":"2024-08-03","value":1.488667790928231},{"period":"2024-11-02","value":1.3355793915238474},{"period":"2025-02-01","value":0.9904460091258211},{"period":"2025-05-03","value":1.0024392707673542},{"period":"2025-08-02","value":1.444265272555664},{"period":"2025-11-01","value":1.3804112648263804},{"period":"2026-01-31","value":1.6380441341431575},{"period":"2026-05-02","value":1.660980931353846}],"current_ratio":[{"period":"2024-08-03","value":1.0799883653286797},{"period":"2024-11-02","value":1.0509902117004326},{"period":"2025-02-01","value":1.082082401788566},{"period":"2025-05-03","value":1.0914634146341464},{"period":"2025-08-02","value":1.363422291993721},{"period":"2025-11-01","value":1.3026912609615966},{"period":"2026-01-31","value":1.4583168708020546},{"period":"2026-05-02","value":1.4815415821501017}],"debt_to_ebitda":[{"period":"2024-08-03","value":1.0776836158192091},{"period":"2024-11-02","value":1.1286031042128604},{"period":"2025-02-01","value":1.298469387755102},{"period":"2025-05-03","value":1.2940677966101697},{"period":"2025-08-02","value":1.1875},{"period":"2025-11-01","value":1.2205292702485966},{"period":"2026-01-31","value":1.0845921450151057},{"period":"2026-05-02","value":1.0595874713521771}],"ebitda_ttm":[{"period":"2024-08-03","value":1416000000.0},{"period":"2024-11-02","value":1353000000.0},{"period":"2025-02-01","value":1176000000.0},{"period":"2025-05-03","value":1180000000.0},{"period":"2025-08-02","value":1280000000.0},{"period":"2025-11-01","value":1247000000.0},{"period":"2026-01-31","value":1324000000.0},{"period":"2026-05-02","value":1309000000.0}],"fcf_ttm":[{"period":"2024-08-03","value":709000000.0},{"period":"2024-11-02","value":392000000.0},{"period":"2025-02-01","value":182000000.0},{"period":"2025-05-03","value":113000000.0},{"period":"2025-08-02","value":480000000.0},{"period":"2025-11-01","value":819000000.0},{"period":"2026-01-31","value":1008000000.0},{"period":"2026-05-02","value":1052000000.0}],"interest_coverage":[{"period":"2024-08-03","value":4.1647058823529415},{"period":"2024-11-02","value":4.137614678899083},{"period":"2025-02-01","value":3.6865203761755487},{"period":"2025-05-03","value":3.782051282051282},{"period":"2025-08-02","value":4.2105263157894735},{"period":"2025-11-01","value":4.115511551155116},{"period":"2026-01-31","value":4.597222222222222},{"period":"2026-05-02","value":4.76}],"operating_margin":[{"period":"2024-08-03","value":0.0388343844896052},{"period":"2024-11-02","value":0.03611442193087},{"period":"2025-02-01","value":0.0266937919980272},{"period":"2025-05-03","value":0.0279990044798407},{"period":"2025-08-02","value":0.0354400100717613},{"period":"2025-11-01","value":0.0341565614881594},{"period":"2026-01-31","value":0.0401880595092419},{"period":"2026-05-02","value":0.0394541103421512}],"quick_ratio":[{"period":"2024-08-03","value":0.1634671320535194},{"period":"2024-11-02","value":0.1179148645572501},{"period":"2025-02-01","value":0.1414883423826253},{"period":"2025-05-03","value":0.1350609756097561},{"period":"2025-08-02","value":0.1883830455259026},{"period":"2025-11-01","value":0.1248866041729664},{"period":"2026-01-31","value":0.3737653101540893},{"period":"2026-05-02","value":0.306288032454361}],"working_capital":[{"period":"2024-08-03","value":275000000.0},{"period":"2024-11-02","value":224000000.0},{"period":"2025-02-01","value":257000000.0},{"period":"2025-05-03","value":300000000.0},{"period":"2025-08-02","value":926000000.0},{"period":"2025-11-01","value":1001000000.0},{"period":"2026-01-31","value":1160000000.0},{"period":"2026-05-02","value":1187000000.0}]},"M":{"altman_z_double_prime":[{"period":"2024-08-03","value":2.494688726348248},{"period":"2024-11-02","value":2.1655144244776503},{"period":"2025-02-01","value":2.849795863116415},{"period":"2025-05-03","value":2.861882530390248},{"period":"2026-01-31","value":3.1489565158502812},{"period":"2026-05-02","value":3.1563456711475943}],"current_ratio":[{"period":"2024-08-03","value":1.434065934065934},{"period":"2024-11-02","value":1.255153299844102},{"period":"2025-02-01","value":1.4321396993810789},{"period":"2025-05-03","value":1.4340095737405971},{"period":"2025-08-02","value":1.3806589239156195},{"period":"2025-11-01","value":1.2542459239130437},{"period":"2026-01-31","value":1.4851991987536168},{"period":"2026-05-02","value":1.4753958065896449}],"debt_to_ebitda":[{"period":"2024-08-03","value":2.554514480408858},{"period":"2024-11-02","value":2.489139878366638},{"period":"2025-02-01","value":1.551647124511446},{"period":"2025-05-03","value":1.5768576290414067},{"period":"2025-08-02","value":1.5492625368731563},{"period":"2025-11-01","value":1.4476190476190476},{"period":"2026-01-31","value":1.264033264033264},{"period":"2026-05-02","value":1.2581479565442315}],"ebitda_ttm":[{"period":"2024-08-03","value":1174000000.0},{"period":"2024-11-02","value":1151000000.0},{"period":"2025-02-01","value":1791000000.0},{"period":"2025-05-03","value":1763000000.0},{"period":"2025-08-02","value":1695000000.0},{"period":"2025-11-01","value":1680000000.0},{"period":"2026-01-31","value":1924000000.0},{"period":"2026-05-02","value":1933000000.0}],"fcf_ttm":[{"period":"2024-08-03","value":659000000.0},{"period":"2024-11-02","value":572000000.0},{"period":"2025-02-01","value":760000000.0},{"period":"2025-05-03","value":621000000.0},{"period":"2025-08-02","value":970000000.0},{"period":"2025-11-01","value":1164000000.0},{"period":"2026-01-31","value":1057000000.0},{"period":"2026-05-02","value":1425000000.0}],"interest_coverage":[{"period":"2024-08-03","value":9.46774193548387},{"period":"2024-11-02","value":9.512396694214877},{"period":"2025-02-01","value":15.57391304347826},{"period":"2025-05-03","value":15.882882882882884},{"period":"2025-08-02","value":16.142857142857142},{"period":"2025-11-01","value":17.142857142857142},{"period":"2026-01-31","value":19.835051546391753},{"period":"2026-05-02","value":20.347368421052632}],"operating_margin":[{"period":"2024-08-03","value":0.0123445942977639},{"period":"2024-11-02","value":0.0115698829763744},{"period":"2025-02-01","value":0.0408199883371461},{"period":"2025-05-03","value":0.0398711784450694},{"period":"2025-08-02","value":0.0367683956023904},{"period":"2025-11-01","value":0.0358121688287959},{"period":"2026-01-31","value":0.0473280338188668},{"period":"2026-05-02","value":0.0479721688180902}],"quick_ratio":[{"period":"2024-08-03","value":0.3406593406593406},{"period":"2024-11-02","value":0.1713147410358565},{"period":"2025-02-01","value":0.4445181255526083},{"period":"2025-05-03","value":0.3710964212445863},{"period":"2025-08-02","value":0.3515050959943114},{"period":"2025-11-01","value":0.1846127717391304},{"period":"2026-01-31","value":0.503227242377031},{"period":"2026-05-02","value":0.4413778348309798}],"working_capital":[{"period":"2024-08-03","value":1738000000.0},{"period":"2024-11-02","value":1473000000.0},{"period":"2025-02-01","value":1955000000.0},{"period":"2025-05-03","value":1904000000.0},{"period":"2025-08-02","value":1606000000.0},{"period":"2025-11-01","value":1497000000.0},{"period":"2026-01-31","value":2180000000.0},{"period":"2026-05-02","value":2222000000.0}]},"ROST":{"altman_z_double_prime":[{"period":"2024-08-03","value":3.7907921755194303},{"period":"2024-11-02","value":3.8265044072773726},{"period":"2025-02-01","value":3.950379099786095},{"period":"2025-05-03","value":3.973224748634255},{"period":"2025-08-02","value":4.006238904789887},{"period":"2025-11-01","value":3.8477722890170343},{"period":"2026-01-31","value":4.041768033074769},{"period":"2026-05-02","value":4.12331920499783}],"current_ratio":[{"period":"2024-08-03","value":1.5581881483061977},{"period":"2024-11-02","value":1.5744765672839225},{"period":"2025-02-01","value":1.6171126114772647},{"period":"2025-05-03","value":1.5499270812503565},{"period":"2025-08-02","value":1.576917892681434},{"period":"2025-11-01","value":1.5199157892388242},{"period":"2026-01-31","value":1.5827246964065975},{"period":"2026-05-02","value":1.540924198170648}],"debt_to_ebitda":[{"period":"2024-08-03","value":0.8254085394463436},{"period":"2024-11-02","value":0.7265066456292296},{"period":"2025-02-01","value":0.7303884679132587},{"period":"2025-05-03","value":0.4962244019691712},{"period":"2025-08-02","value":0.4969442813096462},{"period":"2025-11-01","value":0.4868340568049874},{"period":"2026-01-31","value":0.4717826823860619},{"period":"2026-05-02","value":0.296764029944928}],"ebitda_ttm":[{"period":"2024-08-03","value":2983800000.0},{"period":"2024-11-02","value":3047266000.0},{"period":"2025-02-01","value":3032374000.0},{"period":"2025-05-03","value":3054483000.0},{"period":"2025-08-02","value":3051328000.0},{"period":"2025-11-01","value":3115994000.0},{"period":"2026-01-31","value":3216748000.0},{"period":"2026-05-02","value":3430965000.0}],"fcf_ttm":[{"period":"2024-08-03","value":1626163000.0},{"period":"2024-11-02","value":1686710000.0},{"period":"2025-02-01","value":1636884000.0},{"period":"2025-05-03","value":1606549000.0},{"period":"2025-08-02","value":1678549000.0},{"period":"2025-11-01","value":1963374000.0},{"period":"2026-01-31","value":2207608000.0},{"period":"2026-05-02","value":2632326000.0}],"operating_margin":[{"period":"2024-08-03","value":0.1206333248249556},{"period":"2024-11-02","value":0.122348606067363},{"period":"2025-02-01","value":0.1223701642734641},{"period":"2025-05-03","value":0.1223620600991065},{"period":"2025-08-02","value":0.1200117816947964},{"period":"2025-11-01","value":0.1191367204077404},{"period":"2026-01-31","value":0.1190017792529845},{"period":"2026-05-02","value":0.1221780442717516}],"quick_ratio":[{"period":"2024-08-03","value":1.047224798122374},{"period":"2024-11-02","value":0.9842031852522596},{"period":"2025-02-01","value":1.0927443651359714},{"period":"2025-05-03","value":0.9480348233526664},{"period":"2025-08-02","value":0.9830016247693538},{"period":"2025-11-01","value":0.8965882210914967},{"period":"2026-01-31","value":1.0376921929573788},{"period":"2026-05-02","value":0.9352180277953266}],"working_capital":[{"period":"2024-08-03","value":2720743000.0},{"period":"2024-11-02","value":2782591000.0},{"period":"2025-02-01","value":2876871000.0},{"period":"2025-05-03","value":2439344000.0},{"period":"2025-08-02","value":2533828000.0},{"period":"2025-11-01","value":2609866000.0},{"period":"2026-01-31","value":2812917000.0},{"period":"2026-05-02","value":2658564000.0}]},"TGT":{"altman_z_double_prime":[{"period":"2024-08-03","value":1.3235806156428285},{"period":"2024-11-02","value":1.3374883820172645},{"period":"2025-02-01","value":1.3085340718531024},{"period":"2025-05-03","value":1.4085751774645556},{"period":"2025-08-02","value":1.4841857298627903},{"period":"2025-11-01","value":1.3666779358890797},{"period":"2026-01-31","value":1.344168817134526},{"period":"2026-05-02","value":1.3550301602533943}],"current_ratio":[{"period":"2024-08-03","value":0.896617293835068},{"period":"2024-11-02","value":0.943190161527166},{"period":"2025-02-01","value":0.9353334294918024},{"period":"2025-05-03","value":0.9351271654994472},{"period":"2025-08-02","value":0.9901680278832647},{"period":"2025-11-01","value":0.9745786649091422},{"period":"2026-01-31","value":0.9422986340084786},{"period":"2026-05-02","value":0.9319541890218735}],"debt_to_ebitda":[{"period":"2024-08-03","value":1.6946260387811634},{"period":"2024-11-02","value":1.794005388414908},{"period":"2025-02-01","value":1.864981864981865},{"period":"2025-05-03","value":1.7598953594176523},{"period":"2025-08-02","value":1.9355445777464129},{"period":"2025-11-01","value":1.987591856402843},{"period":"2026-01-31","value":1.9944249181917344},{"period":"2026-05-02","value":1.9414357682619647}],"ebitda_ttm":[{"period":"2024-08-03","value":9025000000.0},{"period":"2024-11-02","value":8908000000.0},{"period":"2025-02-01","value":8547000000.0},{"period":"2025-05-03","value":8792000000.0},{"period":"2025-08-02","value":8502000000.0},{"period":"2025-11-01","value":8301000000.0},{"period":"2026-01-31","value":8251000000.0},{"period":"2026-05-02","value":7940000000.0}],"fcf_ttm":[{"period":"2024-08-03","value":5268000000.0},{"period":"2024-11-02","value":4545000000.0},{"period":"2025-02-01","value":4476000000.0},{"period":"2025-05-03","value":3534000000.0},{"period":"2025-08-02","value":2944000000.0},{"period":"2025-11-01","value":3009000000.0},{"period":"2026-01-31","value":2835000000.0},{"period":"2026-05-02","value":3031000000.0}],"interest_coverage":[{"period":"2024-08-03","value":20.988372093023255},{"period":"2024-11-02","value":20.813084112149532},{"period":"2025-02-01","value":20.79562043795621},{"period":"2025-05-03","value":20.883610451306417},{"period":"2025-08-02","value":19.911007025761123},{"period":"2025-11-01","value":18.9954233409611},{"period":"2026-01-31","value":18.5},{"period":"2026-05-02","value":17.762863534675617}],"operating_margin":[{"period":"2024-08-03","value":0.0569711090400745},{"period":"2024-11-02","value":0.0554429673700846},{"period":"2025-02-01","value":0.0522305425745547},{"period":"2025-05-03","value":0.0542306929477432},{"period":"2025-08-02","value":0.0513441878076486},{"period":"2025-11-01","value":0.0494479390357461},{"period":"2026-01-31","value":0.048835655659477},{"period":"2026-05-02","value":0.044934525320323}],"quick_ratio":[{"period":"2024-08-03","value":0.2659127301841473},{"period":"2024-11-02","value":0.2472925844346549},{"period":"2025-02-01","value":0.3228039809606231},{"period":"2025-05-03","value":0.2480648728345005},{"period":"2025-08-02","value":0.3200853144670447},{"period":"2025-11-01","value":0.2733264287731852},{"period":"2026-01-31","value":0.3627414036740461},{"period":"2026-05-02","value":0.2965332232769294}],"working_capital":[{"period":"2024-08-03","value":-2066000000.0},{"period":"2024-11-02","value":-1238000000.0},{"period":"2025-02-01","value":-1345000000.0},{"period":"2025-05-03","value":-1232000000.0},{"period":"2025-08-02","value":-189000000.0},{"period":"2025-11-01","value":-540000000.0},{"period":"2026-01-31","value":-1225000000.0},{"period":"2026-05-02","value":-1319000000.0}]},"TJX":{"altman_z_double_prime":[{"period":"2024-08-03","value":2.954004648598909},{"period":"2024-11-02","value":2.8829887098040667},{"period":"2025-02-01","value":2.9303595027281197},{"period":"2025-05-03","value":2.8739775584922382},{"period":"2025-08-02","value":2.9166182204229467},{"period":"2025-11-01","value":2.7070959637288485},{"period":"2026-01-31","value":2.9644698279880086},{"period":"2026-05-02","value":3.0225218729562737}],"current_ratio":[{"period":"2024-08-03","value":1.2136333678561342},{"period":"2024-11-02","value":1.1943080635766},{"period":"2025-02-01","value":1.180141715116279},{"period":"2025-05-03","value":1.163295465041101},{"period":"2025-08-02","value":1.1742129465864874},{"period":"2025-11-01","value":1.0937790157845868},{"period":"2026-01-31","value":1.1377890876431405},{"period":"2026-05-02","value":1.1388564760793465}],"debt_to_ebitda":[{"period":"2024-08-03","value":0.4019649122807017},{"period":"2024-11-02","value":0.3929502125908654},{"period":"2025-02-01","value":0.3869835268701053},{"period":"2025-05-03","value":0.3867008362557323},{"period":"2025-08-02","value":0.3745264532984977},{"period":"2025-11-01","value":0.3631645569620253},{"period":"2026-01-31","value":0.3405341246290801},{"period":"2026-05-02","value":0.3248443689869836}],"ebitda_ttm":[{"period":"2024-08-03","value":7125000000.0},{"period":"2024-11-02","value":7291000000.0},{"period":"2025-02-01","value":7406000000.0},{"period":"2025-05-03","value":7414000000.0},{"period":"2025-08-02","value":7655000000.0},{"period":"2025-11-01","value":7900000000.0},{"period":"2026-01-31","value":8425000000.0},{"period":"2026-05-02","value":8835000000.0}],"fcf_ttm":[{"period":"2024-08-03","value":4453000000.0},{"period":"2024-11-02","value":4366000000.0},{"period":"2025-02-01","value":4198000000.0},{"period":"2025-05-03","value":3777000000.0},{"period":"2025-08-02","value":4041000000.0},{"period":"2025-11-01","value":4418000000.0},{"period":"2026-01-31","value":4917000000.0},{"period":"2026-05-02","value":5477000000.0}],"operating_margin":[{"period":"2024-08-03","value":0.1096488862520899},{"period":"2024-11-02","value":0.1106680136828485},{"period":"2025-02-01","value":0.1118168914123491},{"period":"2025-05-03","value":0.1101558113419427},{"period":"2025-08-02","value":0.111799741044454},{"period":"2025-11-01","value":0.1131080554095525},{"period":"2026-01-31","value":0.1188961770357119},{"period":"2026-05-02","value":0.122564302416212}],"quick_ratio":[{"period":"2024-08-03","value":0.6044628566048394},{"period":"2024-11-02","value":0.4977115752683698},{"period":"2025-02-01","value":0.5968386627906976},{"period":"2025-05-03","value":0.5050337120162557},{"period":"2025-08-02","value":0.5222851078882207},{"period":"2025-11-01","value":0.4257553031926291},{"period":"2026-01-31","value":0.5916473317865429},{"period":"2026-05-02","value":0.5418125243096071}],"working_capital":[{"period":"2024-08-03","value":2269000000.0},{"period":"2024-11-02","value":2335000000.0},{"period":"2025-02-01","value":1983000000.0},{"period":"2025-05-03","value":1768000000.0},{"period":"2025-08-02","value":1970000000.0},{"period":"2025-11-01","value":1313000000.0},{"period":"2026-01-31","value":1841000000.0},{"period":"2026-05-02","value":1785000000.0}]},"W":{"altman_z_double_prime":[{"period":"2024-09-30","value":-6.352824593590597},{"period":"2024-12-31","value":-6.546643114760215},{"period":"2025-03-31","value":-6.31386563159179},{"period":"2025-06-30","value":-6.476063031515758},{"period":"2025-09-30","value":-7.027922736447658},{"period":"2025-12-31","value":-5.250996708977146},{"period":"2026-03-31","value":-6.933520547243287},{"period":"2026-06-30","value":-6.702535772215113}],"current_ratio":[{"period":"2024-09-30","value":0.8354080221300139},{"period":"2024-12-31","value":0.7919831223628692},{"period":"2025-03-31","value":0.8291721419185283},{"period":"2025-06-30","value":0.8171557562076749},{"period":"2025-09-30","value":0.7444543034605147},{"period":"2025-12-31","value":0.9398778769375292},{"period":"2026-03-31","value":0.7630170316301703},{"period":"2026-06-30","value":0.7429453262786596}],"debt_to_ebitda":[{"period":"2025-03-31","value":202.25},{"period":"2025-06-30","value":61.361702127659576},{"period":"2025-09-30","value":21.02857142857143},{"period":"2025-12-31","value":10.161490683229813},{"period":"2026-03-31","value":7.088305489260144},{"period":"2026-06-30","value":5.684959349593496}],"ebitda_ttm":[{"period":"2024-09-30","value":-114000000.0},{"period":"2024-12-31","value":-74000000.0},{"period":"2025-03-31","value":16000000.0},{"period":"2025-06-30","value":47000000.0},{"period":"2025-09-30","value":140000000.0},{"period":"2025-12-31","value":322000000.0},{"period":"2026-03-31","value":419000000.0},{"period":"2026-06-30","value":492000000.0}],"fcf_ttm":[{"period":"2024-09-30","value":213000000.0},{"period":"2024-12-31","value":244000000.0},{"period":"2025-03-31","value":295000000.0},{"period":"2025-06-30","value":333000000.0},{"period":"2025-09-30","value":429000000.0},{"period":"2025-12-31","value":464000000.0},{"period":"2026-03-31","value":488000000.0},{"period":"2026-06-30","value":562000000.0}],"interest_coverage":[{"period":"2024-09-30","value":-6.705882352941177},{"period":"2024-12-31","value":-2.5517241379310347},{"period":"2025-03-31","value":0.3478260869565217},{"period":"2025-06-30","value":0.6619718309859155},{"period":"2025-09-30","value":1.443298969072165},{"period":"2025-12-31","value":2.7058823529411766},{"period":"2026-03-31","value":3.1037037037037036},{"period":"2026-06-30","value":3.393103448275862}],"operating_margin":[{"period":"2024-09-30","value":-0.0435663627152988},{"period":"2024-12-31","value":-0.0388996709138469},{"period":"2025-03-31","value":-0.0293621329733378},{"period":"2025-06-30","value":-0.0246502331778814},{"period":"2025-09-30","value":-0.0150314516787844},{"period":"2025-12-31","value":0.0013646945492494},{"period":"2026-03-31","value":0.0101121820192763},{"period":"2026-06-30","value":0.0166615003099814}],"quick_ratio":[{"period":"2024-09-30","value":0.7980636237897649},{"period":"2024-12-31","value":0.759915611814346},{"period":"2025-03-31","value":0.7897503285151117},{"period":"2025-06-30","value":0.7769751693002257},{"period":"2025-09-30","value":0.7133984028393966},{"period":"2025-12-31","value":0.9065288868013152},{"period":"2026-03-31","value":0.7250608272506083},{"period":"2026-06-30","value":0.7059082892416225}],"working_capital":[{"period":"2024-09-30","value":-357000000.0},{"period":"2024-12-31","value":-493000000.0},{"period":"2025-03-31","value":-390000000.0},{"period":"2025-06-30","value":-405000000.0},{"period":"2025-09-30","value":-576000000.0},{"period":"2025-12-31","value":-128000000.0},{"period":"2026-03-31","value":-487000000.0},{"period":"2026-06-30","value":-583000000.0}]}},"stress":[{"ticker":"ANF","scenario":"baseline","label":"Baseline (as reported)","leverage":0.0,"coverage":null,"ebitda":845156000.0,"breach":false,"coverageBreach":false},{"ticker":"ANF","scenario":"revenue_down_10","label":"Revenue -10%","leverage":0.0,"coverage":null,"ebitda":760640400.0,"breach":false,"coverageBreach":false},{"ticker":"ANF","scenario":"revenue_down_20","label":"Revenue -20%","leverage":0.0,"coverage":null,"ebitda":676124800.0,"breach":false,"coverageBreach":false},{"ticker":"ANF","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":0.0,"coverage":null,"ebitda":686671940.0,"breach":false,"coverageBreach":false},{"ticker":"ANF","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":0.0,"coverage":null,"ebitda":845156000.0,"breach":false,"coverageBreach":false},{"ticker":"ANF","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":0.0,"coverage":null,"ebitda":845156000.0,"breach":false,"coverageBreach":false},{"ticker":"ANF","scenario":"combined_recession","label":"Combined recession","leverage":0.0,"coverage":null,"ebitda":583671149.0,"breach":false,"coverageBreach":false},{"ticker":"BBWI","scenario":"baseline","label":"Baseline (as reported)","leverage":2.5825589706933525,"coverage":5.124542124542124,"ebitda":1399000000.0,"breach":false,"coverageBreach":false},{"ticker":"BBWI","scenario":"revenue_down_10","label":"Revenue -10%","leverage":2.8695099674370583,"coverage":4.612087912087912,"ebitda":1259100000.0,"breach":false,"coverageBreach":false},{"ticker":"BBWI","scenario":"revenue_down_20","label":"Revenue -20%","leverage":3.2281987133666905,"coverage":4.099633699633699,"ebitda":1119200000.0,"breach":false,"coverageBreach":false},{"ticker":"BBWI","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":3.0575889645834216,"coverage":4.328388278388278,"ebitda":1181650000.0,"breach":false,"coverageBreach":false},{"ticker":"BBWI","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":2.5825589706933525,"coverage":4.52560411477372,"ebitda":1399000000.0,"breach":false,"coverageBreach":false},{"ticker":"BBWI","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":2.5825589706933525,"coverage":5.124542124542124,"ebitda":1399000000.0,"breach":false,"coverageBreach":false},{"ticker":"BBWI","scenario":"combined_recession","label":"Combined recession","leverage":3.5971634877452017,"coverage":3.2491265810500436,"ebitda":1004402500.0,"breach":false,"coverageBreach":false},{"ticker":"BBY","scenario":"baseline","label":"Baseline (as reported)","leverage":0.4966015293118097,"coverage":51.17391304347826,"ebitda":2354000000.0,"breach":false,"coverageBreach":false},{"ticker":"BBY","scenario":"revenue_down_10","label":"Revenue -10%","leverage":0.5517794770131219,"coverage":46.05652173913043,"ebitda":2118600000.0,"breach":false,"coverageBreach":false},{"ticker":"BBY","scenario":"revenue_down_20","label":"Revenue -20%","leverage":0.6207519116397621,"coverage":40.93913043478261,"ebitda":1883200000.0,"breach":false,"coverageBreach":false},{"ticker":"BBY","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":1.064469131305773,"coverage":23.87391304347826,"ebitda":1098200000.0,"breach":false,"coverageBreach":false},{"ticker":"BBY","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":0.4966015293118097,"coverage":40.80429883862021,"ebitda":2354000000.0,"breach":false,"coverageBreach":false},{"ticker":"BBY","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":0.4966015293118097,"coverage":51.17391304347826,"ebitda":2354000000.0,"breach":false,"coverageBreach":false},{"ticker":"BBY","scenario":"combined_recession","label":"Combined recession","leverage":1.2523166250656157,"coverage":16.180793898422603,"ebitda":933470000.0,"breach":false,"coverageBreach":false},{"ticker":"BURL","scenario":"baseline","label":"Baseline (as reported)","leverage":1.4635185729388105,"coverage":18.2654128210133,"ebitda":1310105000.0,"breach":false,"coverageBreach":false},{"ticker":"BURL","scenario":"revenue_down_10","label":"Revenue -10%","leverage":1.6261317477097892,"coverage":16.43887153891197,"ebitda":1179094500.0,"breach":false,"coverageBreach":false},{"ticker":"BURL","scenario":"revenue_down_20","label":"Revenue -20%","leverage":1.8293982161735127,"coverage":14.61233025681064,"ebitda":1048084000.0,"breach":false,"coverageBreach":false},{"ticker":"BURL","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":2.0118183968026684,"coverage":13.287367760644676,"ebitda":953049740.0,"breach":false,"coverageBreach":false},{"ticker":"BURL","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":1.4635185729388105,"coverage":14.412654924998044,"ebitda":1310105000.0,"breach":false,"coverageBreach":false},{"ticker":"BURL","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":1.4635185729388105,"coverage":18.2654128210133,"ebitda":1310105000.0,"breach":false,"coverageBreach":false},{"ticker":"BURL","scenario":"combined_recession","label":"Combined recession","leverage":2.366845172709022,"coverage":8.911942534859604,"ebitda":810092279.0,"breach":false,"coverageBreach":false},{"ticker":"DKS","scenario":"baseline","label":"Baseline (as reported)","leverage":1.1048033010593488,"coverage":24.761673724251775,"ebitda":1725022000.0,"breach":false,"coverageBreach":false},{"ticker":"DKS","scenario":"revenue_down_10","label":"Revenue -10%","leverage":1.2275592233992765,"coverage":22.2855063518266,"ebitda":1552519800.0,"breach":false,"coverageBreach":false},{"ticker":"DKS","scenario":"revenue_down_20","label":"Revenue -20%","leverage":1.381004126324186,"coverage":19.80933897940142,"ebitda":1380017600.0,"breach":false,"coverageBreach":false},{"ticker":"DKS","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":1.658850909785471,"coverage":16.491403000071774,"ebitda":1148873590.0,"breach":false,"coverageBreach":false},{"ticker":"DKS","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":1.1048033010593488,"coverage":19.44276067901144,"ebitda":1725022000.0,"breach":false,"coverageBreach":false},{"ticker":"DKS","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":1.1048033010593488,"coverage":24.761673724251775,"ebitda":1725022000.0,"breach":false,"coverageBreach":false},{"ticker":"DKS","scenario":"combined_recession","label":"Combined recession","leverage":1.9515893056299656,"coverage":11.00663244972279,"ebitda":976542551.5,"breach":false,"coverageBreach":false},{"ticker":"GAP","scenario":"baseline","label":"Baseline (as reported)","leverage":0.8275097060454798,"coverage":19.597826086956523,"ebitda":1803000000.0,"breach":false,"coverageBreach":false},{"ticker":"GAP","scenario":"revenue_down_10","label":"Revenue -10%","leverage":0.919455228939422,"coverage":17.63804347826087,"ebitda":1622700000.0,"breach":false,"coverageBreach":false},{"ticker":"GAP","scenario":"revenue_down_20","label":"Revenue -20%","leverage":1.0343871325568497,"coverage":15.678260869565218,"ebitda":1442400000.0,"breach":false,"coverageBreach":false},{"ticker":"GAP","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":1.1126025354213274,"coverage":14.576086956521738,"ebitda":1341000000.0,"breach":false,"coverageBreach":false},{"ticker":"GAP","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":0.8275097060454798,"coverage":16.86307519640853,"ebitda":1803000000.0,"breach":false,"coverageBreach":false},{"ticker":"GAP","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":0.8275097060454798,"coverage":19.597826086956523,"ebitda":1803000000.0,"breach":false,"coverageBreach":false},{"ticker":"GAP","scenario":"combined_recession","label":"Combined recession","leverage":1.3089441593192086,"coverage":10.66077441077441,"ebitda":1139850000.0,"breach":false,"coverageBreach":false},{"ticker":"KSS","scenario":"baseline","label":"Baseline (as reported)","leverage":1.0595874713521771,"coverage":4.76,"ebitda":1309000000.0,"breach":false,"coverageBreach":false},{"ticker":"KSS","scenario":"revenue_down_10","label":"Revenue -10%","leverage":1.1773194126135302,"coverage":4.284,"ebitda":1178100000.0,"breach":false,"coverageBreach":false},{"ticker":"KSS","scenario":"revenue_down_20","label":"Revenue -20%","leverage":1.3244843391902217,"coverage":3.808,"ebitda":1047200000.0,"breach":false,"coverageBreach":false},{"ticker":"KSS","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":1.6410899582332543,"coverage":3.073345454545455,"ebitda":845170000.0000001,"breach":false,"coverageBreach":false},{"ticker":"KSS","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":1.0595874713521771,"coverage":4.531450133277945,"ebitda":1309000000.0,"breach":false,"coverageBreach":false},{"ticker":"KSS","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":1.0595874713521771,"coverage":4.76,"ebitda":1309000000.0,"breach":false,"coverageBreach":false},{"ticker":"KSS","scenario":"combined_recession","label":"Combined recession","leverage":1.9306940685097111,"coverage":2.4869127981444943,"ebitda":718394500.0000001,"breach":false,"coverageBreach":false},{"ticker":"M","scenario":"baseline","label":"Baseline (as reported)","leverage":1.2581479565442315,"coverage":20.347368421052632,"ebitda":1933000000.0,"breach":false,"coverageBreach":false},{"ticker":"M","scenario":"revenue_down_10","label":"Revenue -10%","leverage":1.397942173938035,"coverage":18.312631578947368,"ebitda":1739700000.0,"breach":false,"coverageBreach":false},{"ticker":"M","scenario":"revenue_down_20","label":"Revenue -20%","leverage":1.5726849456802896,"coverage":16.277894736842104,"ebitda":1546400000.0,"breach":false,"coverageBreach":false},{"ticker":"M","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":1.9035393935599003,"coverage":13.448631578947367,"ebitda":1277620000.0,"breach":false,"coverageBreach":false},{"ticker":"M","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":1.2581479565442315,"coverage":16.20013409319477,"ebitda":1933000000.0,"breach":false,"coverageBreach":false},{"ticker":"M","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":1.2581479565442315,"coverage":20.347368421052632,"ebitda":1933000000.0,"breach":false,"coverageBreach":false},{"ticker":"M","scenario":"combined_recession","label":"Combined recession","leverage":2.239458110070471,"coverage":9.10138283607107,"ebitda":1085977000.0,"breach":false,"coverageBreach":false},{"ticker":"ROST","scenario":"baseline","label":"Baseline (as reported)","leverage":0.296764029944928,"coverage":null,"ebitda":3430965000.0,"breach":false,"coverageBreach":false},{"ticker":"ROST","scenario":"revenue_down_10","label":"Revenue -10%","leverage":0.32973781104992,"coverage":null,"ebitda":3087868500.0,"breach":false,"coverageBreach":false},{"ticker":"ROST","scenario":"revenue_down_20","label":"Revenue -20%","leverage":0.37095503743116,"coverage":null,"ebitda":2744772000.0,"breach":false,"coverageBreach":false},{"ticker":"ROST","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":0.3746525882627933,"coverage":null,"ebitda":2717683080.0,"breach":false,"coverageBreach":false},{"ticker":"ROST","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":0.296764029944928,"coverage":336.9680618589709,"ebitda":3430965000.0,"breach":false,"coverageBreach":false},{"ticker":"ROST","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":0.296764029944928,"coverage":null,"ebitda":3430965000.0,"breach":false,"coverageBreach":false},{"ticker":"ROST","scenario":"combined_recession","label":"Combined recession","leverage":0.4407677508974039,"coverage":226.87685248387575,"ebitda":2310030618.0,"breach":false,"coverageBreach":false},{"ticker":"TGT","scenario":"baseline","label":"Baseline (as reported)","leverage":1.9414357682619647,"coverage":17.762863534675617,"ebitda":7940000000.0,"breach":false,"coverageBreach":false},{"ticker":"TGT","scenario":"revenue_down_10","label":"Revenue -10%","leverage":2.157150853624405,"coverage":15.986577181208052,"ebitda":7146000000.0,"breach":false,"coverageBreach":false},{"ticker":"TGT","scenario":"revenue_down_20","label":"Revenue -20%","leverage":2.426794710327456,"coverage":14.210290827740492,"ebitda":6352000000.0,"breach":false,"coverageBreach":false},{"ticker":"TGT","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":3.246158414215288,"coverage":10.623467561521254,"ebitda":4748690000.000001,"breach":false,"coverageBreach":false},{"ticker":"TGT","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":1.9414357682619647,"coverage":13.208017965566,"ebitda":7940000000.0,"breach":false,"coverageBreach":false},{"ticker":"TGT","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":1.9414357682619647,"coverage":17.762863534675617,"ebitda":7940000000.0,"breach":false,"coverageBreach":false},{"ticker":"TGT","scenario":"combined_recession","label":"Combined recession","leverage":3.8190098990768098,"coverage":6.714441487149631,"ebitda":4036386500.000001,"breach":false,"coverageBreach":false},{"ticker":"TJX","scenario":"baseline","label":"Baseline (as reported)","leverage":0.3248443689869836,"coverage":null,"ebitda":8835000000.0,"breach":false,"coverageBreach":false},{"ticker":"TJX","scenario":"revenue_down_10","label":"Revenue -10%","leverage":0.3609381877633151,"coverage":null,"ebitda":7951500000.0,"breach":false,"coverageBreach":false},{"ticker":"TJX","scenario":"revenue_down_20","label":"Revenue -20%","leverage":0.4060554612337295,"coverage":null,"ebitda":7068000000.0,"breach":false,"coverageBreach":false},{"ticker":"TJX","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":0.4107346282207605,"coverage":null,"ebitda":6987480000.000001,"breach":false,"coverageBreach":false},{"ticker":"TJX","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":0.3248443689869836,"coverage":307.8397212543554,"ebitda":8835000000.0,"breach":false,"coverageBreach":false},{"ticker":"TJX","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":0.3248443689869836,"coverage":null,"ebitda":8835000000.0,"breach":false,"coverageBreach":false},{"ticker":"TJX","scenario":"combined_recession","label":"Combined recession","leverage":0.4832172096714829,"coverage":206.94627177700352,"ebitda":5939358000.000001,"breach":false,"coverageBreach":false},{"ticker":"W","scenario":"baseline","label":"Baseline (as reported)","leverage":5.684959349593496,"coverage":3.393103448275862,"ebitda":492000000.0,"breach":true,"coverageBreach":false},{"ticker":"W","scenario":"revenue_down_10","label":"Revenue -10%","leverage":6.3166214995483285,"coverage":3.053793103448276,"ebitda":442800000.0,"breach":true,"coverageBreach":false},{"ticker":"W","scenario":"revenue_down_20","label":"Revenue -20%","leverage":7.10619918699187,"coverage":2.7144827586206897,"ebitda":393600000.0,"breach":true,"coverageBreach":false},{"ticker":"W","scenario":"ebitda_margin_down_300bps","label":"EBITDA margin -300bps","leverage":26.66857360793287,"coverage":0.7233103448275862,"ebitda":104880000.0,"breach":true,"coverageBreach":true},{"ticker":"W","scenario":"rates_up_200bps","label":"Rates +200bps","leverage":5.684959349593496,"coverage":2.844423888535584,"ebitda":492000000.0,"breach":true,"coverageBreach":false},{"ticker":"W","scenario":"inventory_build_30pct","label":"Inventory +30% (cash funded)","leverage":5.684959349593496,"coverage":3.393103448275862,"ebitda":492000000.0,"breach":true,"coverageBreach":false},{"ticker":"W","scenario":"combined_recession","label":"Combined recession","leverage":31.37479247992103,"coverage":0.5153957333641672,"ebitda":89148000.0,"breach":true,"coverageBreach":true}],"triggers":[{"ticker":"W","category":"Level","severity":"High","reason":"Debt/EBITDA 5.68x above assumed 4.5x covenant"},{"ticker":"W","category":"Level","severity":"High","reason":"Altman Z\" -6.70 in distress zone (below 1.1)"},{"ticker":"BBWI","category":"Trend","severity":"Medium","reason":"Operating margin down 169bps YoY (trigger 150bps)"},{"ticker":"DKS","category":"Trend","severity":"Medium","reason":"Operating margin down 495bps YoY (trigger 150bps)"},{"ticker":"TGT","category":"Level","severity":"Medium","reason":"Current ratio 0.93x below 1.0x"},{"ticker":"TJX","category":"Trend","severity":"Medium","reason":"35% of debt matures within 12 months - refinancing concentration (trigger 25%)"},{"ticker":"W","category":"Level","severity":"Medium","reason":"Current ratio 0.74x below 1.0x"},{"ticker":"W","category":"Stress","severity":"Medium","reason":"Coverage falls to 0.72x under EBITDA margin -300bps"},{"ticker":"W","category":"Stress","severity":"Medium","reason":"Coverage falls to 0.52x under Combined recession"},{"ticker":"DKS","category":"Trend","severity":"Low","reason":"Interest coverage down 33.7% YoY (trigger 25%)"},{"ticker":"W","category":"Trend","severity":"Low","reason":"Working capital down 44.0% YoY (trigger 20%)"}],"scenarios":["Baseline (as reported)","Revenue -10%","Revenue -20%","EBITDA margin -300bps","Rates +200bps","Inventory +30% (cash funded)","Combined recession"],"thresholds":{"covenant":4.5,"coverage":2.0,"currentRatio":1.0,"altman":1.1},"headline":{"covered":12,"flagged":5,"triggers":11,"portfolioLeverage":1.0791015215371123,"asOf":"2026-06-30"}};
+const NS = "http://www.w3.org/2000/svg";
+const T = DATA.thresholds;
+
+/* Severity uses colour + shape + label together, never colour alone. */
+const SEV = {
+  High:   { color: "var(--critical)", glyph: "▲", shape: "triangle" },
+  Medium: { color: "var(--warning)",  glyph: "◆", shape: "diamond" },
+  Low:    { color: "var(--warning)",  glyph: "◆", shape: "diamond" },
+  Clear:  { color: "var(--good)",     glyph: "●", shape: "circle" },
+};
+
+const fmtX = v => v == null ? "n/a" : v.toFixed(2) + "x";
+const fmtPct = (v, d = 1) => v == null ? "n/a" : (v * 100).toFixed(d) + "%";
+const fmtNum = (v, d = 2) => v == null ? "n/a" : v.toFixed(d);
+const fmtMoney = v => {
+  if (v == null) return "n/a";
+  const a = Math.abs(v);
+  if (a >= 1e9) return (v / 1e9).toFixed(1) + "bn";
+  return (v / 1e6).toFixed(0) + "m";
+};
+/* A ratio computed off near-zero EBITDA runs to hundreds of turns (Wayfair's
+   leverage was 202x two years ago). Left alone, one such point owns the axis
+   and flattens every other name into the baseline. So the axis is capped just
+   above the bulk of the data and outliers are pinned to the edge with a caret
+   and their true value — clipped, but never silently hidden. */
+const quantile = (sorted, q) => {
+  if (!sorted.length) return 0;
+  const pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+};
+function cappedMax(values, floor) {
+  const v = values.filter(n => n != null && isFinite(n)).sort((a, b) => a - b);
+  if (!v.length) return floor;
+  const max = v[v.length - 1];
+  const cap = Math.max(floor, quantile(v, 0.75) * 1.6);
+  return max > cap * 1.25 ? cap : max;
+}
+
+/* Trend panels get a different rule. A percentile cap fires on any strongly
+   rising series -- it clipped Wayfair's operating margin at its CURRENT value
+   because every earlier quarter was lower. What a credit reader needs to see
+   is the recent level and the policy threshold, so the ceiling is anchored to
+   those; only history far above both goes off-scale. */
+function panelCeiling(values, ref) {
+  const max = Math.max(...values);
+  const last = values[values.length - 1];
+  let cap = Math.abs(last) * 4;
+  if (ref != null) cap = Math.max(cap, Math.abs(ref) * 3);
+  return max > cap ? cap : max;
+}
+const el = (tag, attrs = {}, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+
+/* ---------- tooltip ---------- */
+const tip = document.getElementById("tip");
+function showTip(evt, title, rows) {
+  tip.innerHTML = `<div class="t-title">${title}</div>` +
+    rows.map(([k, v]) => `<div class="t-row"><span>${k}</span><b>${v}</b></div>`).join("");
+  tip.style.opacity = 1;
+  moveTip(evt);
+}
+function moveTip(evt) {
+  const pad = 14, r = tip.getBoundingClientRect();
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + r.width > innerWidth - 8) x = evt.clientX - r.width - pad;
+  if (y + r.height > innerHeight - 8) y = evt.clientY - r.height - pad;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => { tip.style.opacity = 0; };
+function bindTip(node, title, rows) {
+  node.addEventListener("mouseenter", e => showTip(e, title, rows));
+  node.addEventListener("mousemove", moveTip);
+  node.addEventListener("mouseleave", hideTip);
+}
+
+/* ---------- headline tiles ---------- */
+function renderTiles() {
+  const h = DATA.headline;
+  document.getElementById("asof").textContent = h.asOf;
+  const grades = {};
+  DATA.companies.forEach(c => grades[c.grade] = (grades[c.grade] || 0) + 1);
+  const subIG = DATA.companies.filter(c => ["BB", "B", "CCC"].includes(c.grade)).length;
+  const tiles = [
+    ["Companies covered", h.covered, "latest filed quarter"],
+    ["On watchlist", h.flagged, `${h.triggers} triggers fired`],
+    ["Sub-investment grade", subIG, "internal scorecard grade"],
+    ["Portfolio Debt/EBITDA", fmtX(h.portfolioLeverage), "debt-weighted, not an average of ratios"],
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(([l, f, s]) =>
+    `<div class="tile"><div class="label">${l}</div><div class="figure">${f}</div><div class="foot">${s}</div></div>`
+  ).join("");
+}
+
+/* ---------- scatter: leverage vs coverage ---------- */
+function renderScatter() {
+  const host = document.getElementById("scatter");
+  host.innerHTML = "";
+  const W = Math.min(host.clientWidth || 880, 880), H = 400;
+  const m = { t: 14, r: 22, b: 44, l: 54 };
+  const pts = DATA.companies.filter(c => c.leverage != null && c.coverage != null);
+  const noCov = DATA.companies.filter(c => c.leverage != null && c.coverage == null);
+
+  const maxX = Math.max(T.covenant * 1.35, ...pts.map(p => p.leverage)) * 1.08;
+  const maxY = cappedMax(pts.map(p => p.coverage), T.coverage * 6) * 1.06;
+  const offscale = pts.filter(p => p.coverage > maxY);
+  const x = v => m.l + (v / maxX) * (W - m.l - m.r);
+  const y = v => H - m.b - (Math.min(v, maxY) / maxY) * (H - m.t - m.b);
+
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H,
+                          role: "img", "aria-label": "Leverage versus interest coverage" }, host);
+
+  for (let i = 0; i <= 4; i++) {
+    const gv = (maxY / 4) * i;
+    el("line", { x1: m.l, x2: W - m.r, y1: y(gv), y2: y(gv), class: "grid-line" }, svg);
+    const t = el("text", { x: m.l - 8, y: y(gv) + 3.5, class: "tick", "text-anchor": "end" }, svg);
+    t.textContent = gv.toFixed(0) + "x";
+  }
+  for (let i = 0; i <= 5; i++) {
+    const gv = (maxX / 5) * i;
+    const t = el("text", { x: x(gv), y: H - m.b + 16, class: "tick", "text-anchor": "middle" }, svg);
+    t.textContent = gv.toFixed(1) + "x";
+  }
+  el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, class: "axis-line" }, svg);
+  el("line", { x1: m.l, x2: m.l, y1: m.t, y2: H - m.b, class: "axis-line" }, svg);
+
+  // Policy thresholds define the quadrants.
+  el("line", { x1: x(T.covenant), x2: x(T.covenant), y1: m.t, y2: H - m.b, class: "ref-line" }, svg);
+  el("line", { x1: m.l, x2: W - m.r, y1: y(T.coverage), y2: y(T.coverage), class: "ref-line" }, svg);
+  let lab = el("text", { x: x(T.covenant) - 6, y: m.t + 11, class: "mark-label", "text-anchor": "end" }, svg);
+  lab.textContent = `covenant ${T.covenant}x`;
+  lab = el("text", { x: W - m.r, y: y(T.coverage) - 6, class: "mark-label", "text-anchor": "end" }, svg);
+  lab.textContent = `coverage floor ${T.coverage}x`;
+
+  const maxE = Math.max(...pts.map(p => p.ebitda || 0));
+  pts.forEach(p => {
+    const r = 7 + 13 * Math.sqrt((p.ebitda || 0) / maxE);
+    const s = SEV[p.severity] || SEV.Clear;
+    const cx = x(p.leverage), cy = y(p.coverage);
+    let node;
+    if (s.shape === "triangle") {
+      node = el("polygon", { points: `${cx},${cy - r} ${cx + r},${cy + r * .78} ${cx - r},${cy + r * .78}` }, svg);
+    } else if (s.shape === "diamond") {
+      node = el("polygon", { points: `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}` }, svg);
+    } else {
+      node = el("circle", { cx, cy, r }, svg);
+    }
+    node.setAttribute("fill", s.color);
+    node.setAttribute("fill-opacity", ".82");
+    // 2px surface ring so overlapping marks stay separable.
+    node.setAttribute("stroke", "var(--surface-1)");
+    node.setAttribute("stroke-width", "2");
+    node.style.cursor = "pointer";
+    bindTip(node, `${p.ticker} — ${p.name}`, [
+      ["Grade", p.grade], ["Watchlist", p.severity],
+      ["Debt/EBITDA", fmtX(p.leverage)], ["EBITDA/interest", fmtX(p.coverage)],
+      ["EBITDA (TTM)", "$" + fmtMoney(p.ebitda)], ["Headroom", fmtNum(p.headroom) + " turns"]]);
+    const clipped = p.coverage > maxY;
+    // Flip the label under the mark when it would otherwise run off the top of
+    // the plot and collide with the text above the chart.
+    const above = cy - r - 5;
+    const ly = above < m.t + 9 ? cy + r + 12 : above;
+    const tx = el("text", { x: cx, y: ly, class: "mark-label", "text-anchor": "middle" }, svg);
+    tx.textContent = clipped ? `${p.ticker} ${fmtX(p.coverage)} ↑` : p.ticker;
+  });
+
+  document.getElementById("scatter-legend").innerHTML =
+    Object.entries({ High: "On watchlist — high", Medium: "On watchlist — medium", Clear: "No triggers" })
+      .map(([k, label]) => `<span class="item"><span class="chip sev-${k}"><span class="glyph">${SEV[k].glyph}</span></span>${label}</span>`)
+      .join("") +
+    `<span class="item muted">Marker size = EBITDA (TTM)</span>` +
+    (offscale.length ? `<span class="item muted">↑ above the axis, true value labelled: ${offscale.map(c => c.ticker).join(", ")}</span>` : "") +
+    (noCov.length ? `<span class="item muted">Not plotted: ${noCov.map(c => c.ticker).join(", ")} — net interest income, coverage not meaningful</span>` : "");
+}
+
+/* ---------- portfolio table (also the chart's table view) ---------- */
+function renderTable() {
+  const cols = [
+    ["Ticker", c => c.ticker, "l"], ["Company", c => c.name, "l"],
+    ["Grade", c => c.grade, "l"], ["Watchlist", c => chip(c.severity), "l"],
+    ["Revenue TTM", c => "$" + fmtMoney(c.revenue)], ["EBITDA TTM", c => "$" + fmtMoney(c.ebitda)],
+    ["Op margin", c => fmtPct(c.margin)], ["Total debt", c => "$" + fmtMoney(c.debt)],
+    ["Debt/EBITDA", c => flag(c.leverage, c.leverage != null && c.leverage > T.covenant, fmtX)],
+    ["EBITDA/int", c => c.coverage == null ? '<span class="muted">n/m</span>'
+      : flag(c.coverage, c.coverage < T.coverage, fmtX)],
+    ["FCF/debt", c => fmtPct(c.fcfToDebt)],
+    ["Current", c => flag(c.currentRatio, c.currentRatio != null && c.currentRatio < T.currentRatio, fmtX)],
+    ["Altman Z″", c => flag(c.altman, c.altman != null && c.altman < T.altman, v => fmtNum(v))],
+    ["Headroom", c => fmtNum(c.headroom)],
+  ];
+  const chipHtml = s => chip(s);
+  const t = document.getElementById("portfolio");
+  t.innerHTML = "<thead><tr>" + cols.map(([h, , cls]) =>
+      `<th class="${cls || ''}">${h}</th>`).join("") + "</tr></thead><tbody>" +
+    DATA.companies.map(c => "<tr>" + cols.map(([, fn, cls]) =>
+      `<td class="${cls || 'num'}">${fn(c)}</td>`).join("") + "</tr>").join("") + "</tbody>";
+}
+const chip = s => `<span class="chip sev-${s}"><span class="glyph">${(SEV[s] || SEV.Clear).glyph}</span>${s}</span>`;
+const flag = (v, bad, fmt) => `<span class="${bad ? 'bad' : ''}">${fmt(v)}</span>`;
+
+/* ---------- company page ---------- */
+function renderCompany(ticker) {
+  const c = DATA.companies.find(x => x.ticker === ticker);
+  document.getElementById("company-tiles").innerHTML = [
+    ["Internal grade", c.grade, c.band],
+    ["Debt / EBITDA", fmtX(c.leverage), `covenant ${T.covenant}x`],
+    ["EBITDA / interest", c.coverage == null ? "n/m" : fmtX(c.coverage), c.coverageNote || `floor ${T.coverage}x`],
+    ["Covenant headroom", fmtNum(c.headroom), "turns"],
+    ['Altman Z″', fmtNum(c.altman), `distress below ${T.altman}`],
+  ].map(([l, f, s]) => `<div class="tile"><div class="label">${l}</div><div class="figure">${f}</div><div class="foot">${s}</div></div>`).join("");
+
+  renderPanels(ticker);
+  renderTrendTable(ticker);
+  renderCompanyStress(ticker);
+
+  const rows = DATA.triggers.filter(t => t.ticker === ticker);
+  document.getElementById("company-triggers").innerHTML = rows.length
+    ? rows.map(r => `<div class="trigger ${r.category}"><div class="cat">${r.category} &middot; ${r.severity}</div>${r.reason}</div>`).join("")
+    : `<p class="sub">No triggers. Inside every credit-policy test, with no early-warning test firing.</p>`;
+}
+
+const PANELS = [["debt_to_ebitda", "Debt / EBITDA", "x"], ["interest_coverage", "EBITDA / interest", "x"], ["operating_margin", "Operating margin", "%"], ["current_ratio", "Current ratio", "x"], ["fcf_ttm", "Free cash flow (TTM)", "$"], ["altman_z_double_prime", "Altman Z\"", ""]];
+
+function renderPanels(ticker) {
+  const host = document.getElementById("panels");
+  host.innerHTML = "";
+  const series = DATA.trends[ticker] || {};
+  PANELS.forEach(([key, title, unit]) => {
+    const data = (series[key] || []).filter(d => d.value != null);
+    const box = document.createElement("div");
+    box.innerHTML = `<div style="font-size:12.5px;font-weight:600;margin-bottom:2px">${title}</div>`;
+    host.appendChild(box);
+    if (data.length < 2) {
+      box.innerHTML += `<p class="muted">Not enough history.</p>`;
+      return;
+    }
+    const W = 300, H = 132, m = { t: 12, r: 12, b: 22, l: 46 };
+    const vals = data.map(d => d.value);
+    const ref = key === "debt_to_ebitda" ? T.covenant
+      : key === "interest_coverage" ? T.coverage
+      : key === "current_ratio" ? T.currentRatio
+      : key === "altman_z_double_prime" ? T.altman : null;
+    let lo = Math.min(...vals), hi = panelCeiling(vals, ref);
+    if (ref != null) { lo = Math.min(lo, ref); hi = Math.max(hi, ref); }
+    if (lo === hi) { lo -= 1; hi += 1; }
+    const pad = (hi - lo) * .16; lo -= pad; hi += pad;
+    if (unit !== "$" && lo > 0) lo = Math.min(lo, 0);
+    const clippedCount = vals.filter(v => v > hi).length;
+    const x = i => m.l + (i / (data.length - 1)) * (W - m.l - m.r);
+    const y = v => H - m.b - ((Math.min(v, hi) - lo) / (hi - lo)) * (H - m.t - m.b);
+    const fmt = v => unit === "%" ? fmtPct(v, 1) : unit === "$" ? "$" + fmtMoney(v) : fmtNum(v) + (unit === "x" ? "x" : "");
+
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", height: H,
+                            preserveAspectRatio: "xMidYMid meet", role: "img", "aria-label": title }, box);
+    [lo, (lo + hi) / 2, hi].forEach(gv => {
+      el("line", { x1: m.l, x2: W - m.r, y1: y(gv), y2: y(gv), class: "grid-line" }, svg);
+      const t = el("text", { x: m.l - 6, y: y(gv) + 3.5, class: "tick", "text-anchor": "end" }, svg);
+      t.textContent = fmt(gv);
+    });
+    if (ref != null) {
+      el("line", { x1: m.l, x2: W - m.r, y1: y(ref), y2: y(ref), class: "ref-line" }, svg);
+    }
+    el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, class: "axis-line" }, svg);
+
+    const d = data.map((p, i) => `${i ? "L" : "M"}${x(i)},${y(p.value)}`).join(" ");
+    el("path", { d, fill: "none", stroke: "var(--series-1)", "stroke-width": 2,
+                 "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+
+    // Mark any point pinned to the ceiling, and say so beneath the panel.
+    data.forEach((p, i) => {
+      if (p.value <= hi) return;
+      const cx = x(i);
+      el("polygon", { points: `${cx},${y(hi) - 7} ${cx + 5},${y(hi) + 1} ${cx - 5},${y(hi) + 1}`,
+                      fill: "var(--series-1)", stroke: "var(--surface-1)", "stroke-width": 1.5 }, svg);
+    });
+    if (clippedCount) {
+      const note = document.createElement("p");
+      note.className = "muted";
+      note.style.margin = "2px 0 0";
+      note.textContent = `${clippedCount} earlier quarter${clippedCount > 1 ? "s" : ""} above the axis `
+        + `(peak ${fmt(Math.max(...vals))}) — see the table view.`;
+      box.appendChild(note);
+    }
+
+    // Direct-label the endpoint only; the axis and tooltip carry the rest.
+    const last = data[data.length - 1];
+    const lx = x(data.length - 1), ly = y(last.value);
+    const dot = el("circle", { cx: lx, cy: ly, r: 4.5, fill: "var(--series-1)",
+                               stroke: "var(--surface-1)", "stroke-width": 2 }, svg);
+    const tl = el("text", { x: lx, y: ly - 9, class: "mark-label", "text-anchor": "end" }, svg);
+    tl.textContent = fmt(last.value);
+
+    [data[0], last].forEach((p, i) => {
+      const t = el("text", { x: i ? W - m.r : m.l, y: H - m.b + 15, class: "tick",
+                             "text-anchor": i ? "end" : "start" }, svg);
+      t.textContent = p.period.slice(0, 7);
+    });
+
+    // Crosshair + tooltip across the series.
+    const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b,
+                             fill: "transparent" }, svg);
+    const cross = el("line", { y1: m.t, y2: H - m.b, class: "grid-line", opacity: 0,
+                               stroke: "var(--text-muted)" }, svg);
+    hit.addEventListener("mousemove", e => {
+      const box2 = svg.getBoundingClientRect();
+      const px = (e.clientX - box2.left) / box2.width * W;
+      let idx = Math.round((px - m.l) / ((W - m.l - m.r) / (data.length - 1)));
+      idx = Math.max(0, Math.min(data.length - 1, idx));
+      cross.setAttribute("x1", x(idx)); cross.setAttribute("x2", x(idx));
+      cross.setAttribute("opacity", .55);
+      showTip(e, title, [["Quarter", data[idx].period], ["Value", fmt(data[idx].value)]]);
+    });
+    hit.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); hideTip(); });
+  });
+}
+
+function renderTrendTable(ticker) {
+  const series = DATA.trends[ticker] || {};
+  const periods = [...new Set(Object.values(series).flat().map(d => d.period))].sort();
+  const host = document.getElementById("trend-table-view");
+  host.innerHTML = "<table><thead><tr><th class='l'>Metric</th>" +
+    periods.map(p => `<th>${p}</th>`).join("") + "</tr></thead><tbody>" +
+    PANELS.map(([key, title, unit]) => {
+      const byPeriod = Object.fromEntries((series[key] || []).map(d => [d.period, d.value]));
+      const fmt = v => v == null ? "—" : unit === "%" ? fmtPct(v) : unit === "$" ? "$" + fmtMoney(v)
+        : fmtNum(v) + (unit === "x" ? "x" : "");
+      return `<tr><td class="l">${title}</td>` +
+        periods.map(p => `<td class="num">${fmt(byPeriod[p])}</td>`).join("") + "</tr>";
+    }).join("") + "</tbody></table>";
+}
+
+function renderCompanyStress(ticker) {
+  const host = document.getElementById("company-stress");
+  host.innerHTML = "";
+  const rows = DATA.stress.filter(s => s.ticker === ticker && s.leverage != null);
+  if (!rows.length) { host.innerHTML = `<p class="muted">No leverage multiple — this name carries no debt.</p>`; return; }
+  const W = 460, rowH = 30, H = rows.length * rowH + 34, m = { t: 6, r: 58, b: 24, l: 172 };
+  const maxV = Math.max(T.covenant * 1.15, ...rows.map(r => r.leverage));
+  const x = v => m.l + (v / maxV) * (W - m.l - m.r);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", height: H,
+                          preserveAspectRatio: "xMidYMid meet", role: "img",
+                          "aria-label": "Stressed Debt/EBITDA by scenario" }, host);
+  rows.forEach((r, i) => {
+    const yy = m.t + i * rowH;
+    const lab = el("text", { x: m.l - 9, y: yy + 15, class: "tick", "text-anchor": "end" }, svg);
+    lab.textContent = r.label;
+    const w = Math.max(2, x(r.leverage) - m.l);
+    // 4px rounded data-end, anchored to the baseline.
+    const bar = el("rect", { x: m.l, y: yy + 5, width: w, height: 15, rx: 4,
+                             fill: r.breach ? "var(--critical)" : "var(--series-1)",
+                             "fill-opacity": r.breach ? ".9" : ".82" }, svg);
+    bindTip(bar, r.label, [["Debt/EBITDA", fmtX(r.leverage)],
+      ["EBITDA/interest", fmtX(r.coverage)], ["Stressed EBITDA", "$" + fmtMoney(r.ebitda)],
+      ["Covenant", r.breach ? "Breach" : "Compliant"]]);
+    const v = el("text", { x: m.l + w + 7, y: yy + 17, class: "mark-label" }, svg);
+    v.textContent = fmtX(r.leverage);
+  });
+  el("line", { x1: x(T.covenant), x2: x(T.covenant), y1: m.t, y2: H - m.b + 4, class: "ref-line" }, svg);
+  const rl = el("text", { x: x(T.covenant), y: H - m.b + 16, class: "mark-label", "text-anchor": "middle" }, svg);
+  rl.textContent = `covenant ${T.covenant}x`;
+}
+
+/* ---------- heatmaps ---------- */
+const SEQ = ["var(--seq-100)", "var(--seq-200)", "var(--seq-300)", "var(--seq-450)", "var(--seq-550)", "var(--seq-700)"];
+/* Square-root scaling, capped. A linear ramp against a 31x outlier drops
+   almost every real name into the first one or two steps, so the shading
+   stops discriminating exactly where the portfolio actually sits. */
+function heatColor(v, max) {
+  if (v == null) return "var(--surface-2)";
+  const t = Math.sqrt(Math.max(0, Math.min(v, max)) / max);
+  return SEQ[Math.min(SEQ.length - 1, Math.floor(t * SEQ.length))];
+}
+function renderHeatmap(hostId, field, isBreach, fmt, legendId) {
+  const host = document.getElementById(hostId);
+  const tickers = DATA.companies.map(c => c.ticker);
+  const scenarios = DATA.scenarios;
+  const vals = DATA.stress.map(s => s[field]).filter(v => v != null);
+  const max = cappedMax(vals, T.covenant * 1.5);
+
+  let html = "<table><thead><tr><th class='l'>Ticker</th>" +
+    scenarios.map(s => `<th>${s}</th>`).join("") + "</tr></thead><tbody>";
+  tickers.forEach(tk => {
+    html += `<tr><td class="l"><b>${tk}</b></td>`;
+    scenarios.forEach(sc => {
+      const r = DATA.stress.find(s => s.ticker === tk && s.label === sc);
+      const v = r ? r[field] : null;
+      const breach = r ? isBreach(r) : false;
+      const shade = heatColor(v, max);
+      const deep = v != null && Math.sqrt(Math.min(v, max) / max) > .5;
+      html += `<td class="num heat" data-t="${tk}" data-s="${sc}" style="background:${shade};`
+        + `${deep ? "color:#fff;" : ""}${breach ? "outline:2px solid var(--critical);outline-offset:-2px;font-weight:700;" : ""}">`
+        + `${v == null ? "n/m" : fmt(v)}${breach ? " ▲" : ""}</td>`;
+    });
+    html += "</tr>";
+  });
+  host.innerHTML = html + "</tbody></table>";
+
+  host.querySelectorAll("td.heat").forEach(cell => {
+    const r = DATA.stress.find(s => s.ticker === cell.dataset.t && s.label === cell.dataset.s);
+    if (!r) return;
+    bindTip(cell, `${r.ticker} — ${r.label}`, [
+      ["Debt/EBITDA", fmtX(r.leverage)], ["EBITDA/interest", fmtX(r.coverage)],
+      ["Stressed EBITDA", "$" + fmtMoney(r.ebitda)],
+      ["Covenant", r.breach ? "Breach" : "Compliant"]]);
+  });
+
+  if (legendId) {
+    document.getElementById(legendId).innerHTML =
+      `<span class="item">Leverage</span>` +
+      SEQ.map((c, i) => `<span style="width:26px;height:12px;background:${c};display:inline-block;border-radius:2px"
+        title="${(max * Math.pow(i / SEQ.length, 2)).toFixed(1)}x+"></span>`).join("") +
+      `<span class="item muted">low &rarr; high</span>` +
+      `<span class="item" style="margin-left:10px"><span style="width:12px;height:12px;outline:2px solid var(--critical);outline-offset:-2px;display:inline-block"></span>&#9650; breach of ${T.covenant}x assumed covenant</span>`;
+  }
+}
+
+/* ---------- wiring ---------- */
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t === tab)));
+    document.querySelectorAll(".page").forEach(p => p.hidden = p.id !== "page-" + tab.dataset.page);
+    if (tab.dataset.page === "overview") renderScatter();
+  });
+});
+const pick = document.getElementById("pick");
+pick.innerHTML = DATA.companies.map(c => `<option value="${c.ticker}">${c.ticker} — ${c.name}</option>`).join("");
+pick.addEventListener("change", () => renderCompany(pick.value));
+const toggle = document.getElementById("trend-table");
+toggle.addEventListener("click", () => {
+  const on = toggle.getAttribute("aria-pressed") !== "true";
+  toggle.setAttribute("aria-pressed", String(on));
+  document.getElementById("panels").hidden = on;
+  document.getElementById("trend-table-view").hidden = !on;
+  toggle.textContent = on ? "Show trend as charts" : "Show trend as table";
+});
+
+renderTiles();
+renderTable();
+renderScatter();
+renderCompany(DATA.companies[0].ticker);
+renderHeatmap("heatmap", "leverage", r => r.breach, fmtX, "heat-legend");
+renderHeatmap("heatmap2", "coverage", r => r.coverageBreach, fmtX, null);
+addEventListener("resize", () => { renderScatter(); });
+</script>
+</div>
+</body>
+</html>

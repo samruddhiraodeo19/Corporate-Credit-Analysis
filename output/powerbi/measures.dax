@@ -1,0 +1,156 @@
+// ---------------------------------------------------------------------------
+// DAX measures for the credit-risk dashboard
+// Paste each block into Power BI via Modeling > New measure.
+// Thresholds are read from dim_metric where possible so the report never
+// hardcodes a policy limit that config.py owns.
+// ---------------------------------------------------------------------------
+
+// --- Portfolio headline measures -------------------------------------------
+
+Companies Covered = DISTINCTCOUNT ( dim_company[ticker] )
+
+Names On Watchlist =
+CALCULATE ( DISTINCTCOUNT ( dim_company[ticker] ), dim_company[on_watchlist] = TRUE () )
+
+% On Watchlist =
+DIVIDE ( [Names On Watchlist], [Companies Covered] )
+
+Sub-Investment Grade Names =
+CALCULATE ( DISTINCTCOUNT ( dim_company[ticker] ), dim_company[sub_investment_grade] = TRUE () )
+
+Total Triggers = COUNTROWS ( fact_trigger )
+
+High Severity Triggers =
+CALCULATE ( COUNTROWS ( fact_trigger ), fact_trigger[severity] = "High" )
+
+// --- Latest-quarter metric values ------------------------------------------
+// Every visual reads through this one measure. Because it resolves the latest
+// date WITHIN the current filter context, the same measure works on a company
+// page, a portfolio table, or a scatter plot without modification.
+
+Latest Date = MAX ( fact_metric_quarterly[date] )
+
+Metric Value =
+VAR LatestDate =
+    CALCULATE ( MAX ( fact_metric_quarterly[date] ), ALLEXCEPT ( fact_metric_quarterly, dim_company ) )
+RETURN
+    CALCULATE ( SUM ( fact_metric_quarterly[value] ), fact_metric_quarterly[date] = LatestDate )
+
+// Named shortcuts for the scatter plot axes and KPI cards.
+
+Debt to EBITDA =
+CALCULATE ( [Metric Value], dim_metric[metric] = "debt_to_ebitda" )
+
+Interest Coverage =
+CALCULATE ( [Metric Value], dim_metric[metric] = "interest_coverage" )
+
+FCF to Debt =
+CALCULATE ( [Metric Value], dim_metric[metric] = "fcf_to_debt" )
+
+Current Ratio =
+CALCULATE ( [Metric Value], dim_metric[metric] = "current_ratio" )
+
+Altman Z Double Prime =
+CALCULATE ( [Metric Value], dim_metric[metric] = "altman_z_double_prime" )
+
+EBITDA TTM =
+CALCULATE ( [Metric Value], dim_metric[metric] = "ebitda_ttm" )
+
+Total Debt =
+CALCULATE ( [Metric Value], dim_metric[metric] = "total_debt" )
+
+// --- Portfolio aggregates ---------------------------------------------------
+// Portfolio leverage is deliberately debt-weighted, not an average of ratios:
+// averaging multiples lets a tiny debt-free name offset a large levered one.
+
+Portfolio Debt / EBITDA =
+VAR TotalDebtAll =
+    SUMX ( VALUES ( dim_company[ticker] ), [Total Debt] )
+VAR TotalEbitdaAll =
+    SUMX ( VALUES ( dim_company[ticker] ), [EBITDA TTM] )
+RETURN
+    DIVIDE ( TotalDebtAll, TotalEbitdaAll )
+
+Median Debt / EBITDA =
+MEDIANX ( VALUES ( dim_company[ticker] ), [Debt to EBITDA] )
+
+// --- Covenant testing -------------------------------------------------------
+
+Assumed Covenant = 4.5
+
+Covenant Headroom =
+VAR Leverage = [Debt to EBITDA]
+RETURN
+    IF ( NOT ISBLANK ( Leverage ), [Assumed Covenant] - Leverage )
+
+Covenant Status =
+VAR Leverage = [Debt to EBITDA]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( Leverage ), "No data",
+        Leverage > [Assumed Covenant], "Breach",
+        Leverage > [Assumed Covenant] * 0.8, "Tight",
+        "Compliant"
+    )
+
+// --- Stress measures --------------------------------------------------------
+
+Stressed Value = SUM ( fact_stress[value] )
+
+Stressed Debt to EBITDA =
+CALCULATE ( [Stressed Value], fact_stress[measure] = "stressed_debt_to_ebitda" )
+
+Stressed Interest Coverage =
+CALCULATE ( [Stressed Value], fact_stress[measure] = "stressed_interest_coverage" )
+
+Names Breaching Covenant =
+CALCULATE (
+    DISTINCTCOUNT ( fact_stress[ticker] ),
+    fact_stress[breaches_leverage_covenant] = TRUE ()
+)
+
+// Names pushed into breach BY the scenario, excluding those already in breach
+// at baseline -- the number a credit committee actually asks for.
+Newly Breaching Under Scenario =
+VAR BaselineBreachers =
+    CALCULATETABLE (
+        VALUES ( fact_stress[ticker] ),
+        ALL ( dim_scenario ),
+        dim_scenario[is_baseline] = TRUE (),
+        fact_stress[breaches_leverage_covenant] = TRUE ()
+    )
+VAR ScenarioBreachers =
+    CALCULATETABLE (
+        VALUES ( fact_stress[ticker] ),
+        fact_stress[breaches_leverage_covenant] = TRUE ()
+    )
+RETURN
+    COUNTROWS ( EXCEPT ( ScenarioBreachers, BaselineBreachers ) )
+
+// --- Conditional formatting helpers ----------------------------------------
+// Return hex colours; bind via Format > Cell elements > Background colour >
+// Format style = Field value.
+
+Leverage Colour =
+VAR Leverage = [Debt to EBITDA]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( Leverage ), "#F2F2F2",
+        Leverage > [Assumed Covenant], "#C00000",
+        Leverage > 2, "#FFC000",
+        "#4EA72E"
+    )
+
+Stress Breach Colour =
+IF ( SELECTEDVALUE ( fact_stress[breaches_leverage_covenant] ) = TRUE (), "#C00000", "#FFFFFF" )
+
+Severity Colour =
+SWITCH (
+    SELECTEDVALUE ( dim_company[watchlist_severity] ),
+    "High", "#C00000",
+    "Medium", "#FFC000",
+    "Low", "#FFE699",
+    "#4EA72E"
+)
